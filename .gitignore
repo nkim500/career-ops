@@ -1,5 +1,8 @@
 # Personal data (user fills these)
 cv.md
+article-digest.md
+interview-prep/*.md
+!interview-prep/.gitkeep
 data/applications.md
 data/pipeline.md
 data/scan-history.tsv
@@ -12,6 +15,7 @@ batch/logs/*
 batch/batch-state.tsv
 batch/batch-input.tsv
 batch/tracker-additions/*.tsv
+batch/tracker-additions/merged/
 !batch/tracker-additions/.gitkeep
 jds/*
 !jds/.gitkeep
