@@ -33,9 +33,20 @@ Read `portals.yml` which contains:
 
 **Each company MUST have `careers_url` in portals.yml.** If it doesn't, find it once, save it, and use it in future scans.
 
-### Level 2 — Greenhouse API (COMPLEMENTARY)
+### Level 2 — ATS APIs: Greenhouse + Ashby (COMPLEMENTARY)
 
-For companies using Greenhouse, the JSON API (`boards-api.greenhouse.io/v1/boards/{slug}/jobs`) returns clean structured data. Use as a quick complement to Level 1 — faster than Playwright but only works with Greenhouse.
+For companies with an `api:` field, fetch structured JSON directly from the ATS. Faster than Playwright, real-time (no Google cache), and returns clean data with no HTML parsing needed.
+
+**Greenhouse** (`boards-api.greenhouse.io`):
+- URL: `https://boards-api.greenhouse.io/v1/boards/{slug}/jobs`
+- Response: `{ "jobs": [{ "title": "...", "absolute_url": "https://job-boards.greenhouse.io/..." }] }`
+
+**Ashby** (`api.ashbyhq.com`):
+- URL: `https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true`
+- Response: `{ "jobs": [{ "title": "...", "jobUrl": "https://jobs.ashbyhq.com/{company}/{id}", "isRemote": true/false, "location": "...", "compensation": { "summaryComponents": [...] } }] }`
+- Bonus: includes compensation ranges when the company has set them — extract and include in the pipeline entry if present
+
+Detect which API by the domain in the `api:` URL. Parse response accordingly.
 
 ### Level 3 — WebSearch queries (BROAD DISCOVERY)
 
@@ -64,11 +75,15 @@ Levels are additive — all run, results are merged and deduplicated.
    f. Accumulate in candidate list
    g. If `careers_url` fails (404, redirect), try `scan_query` as fallback and note for URL update
 
-5. **Level 2 — Greenhouse APIs** (parallel):
+5. **Level 2 — ATS APIs** (parallel):
    For each company in `tracked_companies` with `api:` defined and `enabled: true`:
    a. WebFetch the API URL → JSON with job list
-   b. For each job extract: `{title, url, company}`
-   c. Accumulate in candidate list (dedup with Level 1)
+   b. Detect API type from URL domain:
+      - `boards-api.greenhouse.io` → Greenhouse: extract `job.title` + `job.absolute_url`
+      - `api.ashbyhq.com` → Ashby: extract `job.title` + `job.jobUrl` + optional `job.compensation.summaryComponents`
+   c. For each job extract: `{title, url, company}` (+ `{compensation}` for Ashby if present)
+   d. Accumulate in candidate list (dedup with Level 1)
+   e. If compensation data is available, annotate the pipeline entry: `- [ ] {url} | {company} | {title} | 💰 {comp}`
 
 6. **Level 3 — WebSearch queries** (parallel if possible):
    For each query in `search_queries` with `enabled: true`:
