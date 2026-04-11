@@ -6,6 +6,7 @@ interview-prep/*.md
 data/applications.md
 data/pipeline.md
 data/scan-history.tsv
+data/follow-ups.md
 reports/*.md
 !reports/.gitkeep
 output/*
