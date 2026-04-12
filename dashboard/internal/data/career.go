@@ -570,10 +570,39 @@ func UpdateApplicationStatus(careerOpsPath string, app model.CareerApplication, 
 	return os.WriteFile(filePath, []byte(strings.Join(lines, "\n")), 0644)
 }
 
-// replaceStatusInLine replaces the old status with new status in a table line.
+// replaceStatusInLine replaces the status cell in a tracker table row.
+// Columns: | # | Date | Company | Role | Score | Status | PDF | Report | Notes |
+// Splitting on "|" yields: ["", "#", "Date", "Company", "Role", "Score", "Status", "PDF", "Report", "Notes", ""]
+// Status is at index 6. Plain string replacement is unsafe because role/notes
+// cells can also contain the status word (e.g. "Applied AI").
 func replaceStatusInLine(line, oldStatus, newStatus string) string {
-	// Case-insensitive replacement of the status field
-	return strings.Replace(line, oldStatus, newStatus, 1)
+	const statusIdx = 6
+	cells := strings.Split(line, "|")
+	if len(cells) <= statusIdx {
+		return line
+	}
+	leading := ""
+	cell := cells[statusIdx]
+	for i := 0; i < len(cell); i++ {
+		if cell[i] != ' ' {
+			leading = cell[:i]
+			cell = cell[i:]
+			break
+		}
+	}
+	trailing := ""
+	for i := len(cell) - 1; i >= 0; i-- {
+		if cell[i] != ' ' {
+			trailing = cell[i+1:]
+			cell = cell[:i+1]
+			break
+		}
+	}
+	if !strings.EqualFold(cell, oldStatus) {
+		return line
+	}
+	cells[statusIdx] = leading + newStatus + trailing
+	return strings.Join(cells, "|")
 }
 
 // cleanTableCell removes trailing pipes and whitespace from a table cell value.
