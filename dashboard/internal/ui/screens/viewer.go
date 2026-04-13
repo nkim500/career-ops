@@ -17,6 +17,8 @@ type ViewerClosedMsg struct{}
 // ViewerModel implements an integrated file viewer screen.
 type ViewerModel struct {
 	lines        []string
+	visualLines  []string
+	visualWidth  int
 	title        string
 	scrollOffset int
 	width        int
@@ -31,13 +33,15 @@ func NewViewerModel(t theme.Theme, path, title string, width, height int) Viewer
 		content = []byte("Error reading file: " + err.Error())
 	}
 
-	return ViewerModel{
+	m := ViewerModel{
 		lines:  strings.Split(string(content), "\n"),
 		title:  title,
 		width:  width,
 		height: height,
 		theme:  t,
 	}
+	m.rebuildVisualLines()
+	return m
 }
 
 func (m ViewerModel) Init() tea.Cmd {
@@ -47,6 +51,8 @@ func (m ViewerModel) Init() tea.Cmd {
 func (m *ViewerModel) Resize(width, height int) {
 	m.width = width
 	m.height = height
+	m.rebuildVisualLines()
+	m.clampScroll()
 }
 
 func (m ViewerModel) Update(msg tea.Msg) (ViewerModel, tea.Cmd) {
@@ -57,11 +63,7 @@ func (m ViewerModel) Update(msg tea.Msg) (ViewerModel, tea.Cmd) {
 			return m, func() tea.Msg { return ViewerClosedMsg{} }
 
 		case "down", "j":
-			maxScroll := len(m.lines) - m.bodyHeight()
-			if maxScroll < 0 {
-				maxScroll = 0
-			}
-			if m.scrollOffset < maxScroll {
+			if m.scrollOffset < m.maxScroll() {
 				m.scrollOffset++
 			}
 
@@ -72,13 +74,9 @@ func (m ViewerModel) Update(msg tea.Msg) (ViewerModel, tea.Cmd) {
 
 		case "pgdown", "ctrl+d":
 			jump := m.bodyHeight() / 2
-			maxScroll := len(m.lines) - m.bodyHeight()
-			if maxScroll < 0 {
-				maxScroll = 0
-			}
 			m.scrollOffset += jump
-			if m.scrollOffset > maxScroll {
-				m.scrollOffset = maxScroll
+			if ms := m.maxScroll(); m.scrollOffset > ms {
+				m.scrollOffset = ms
 			}
 
 		case "pgup", "ctrl+u":
@@ -92,16 +90,14 @@ func (m ViewerModel) Update(msg tea.Msg) (ViewerModel, tea.Cmd) {
 			m.scrollOffset = 0
 
 		case "end", "G":
-			maxScroll := len(m.lines) - m.bodyHeight()
-			if maxScroll < 0 {
-				maxScroll = 0
-			}
-			m.scrollOffset = maxScroll
+			m.scrollOffset = m.maxScroll()
 		}
 
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.rebuildVisualLines()
+		m.clampScroll()
 	}
 
 	return m, nil
@@ -113,6 +109,23 @@ func (m ViewerModel) bodyHeight() int {
 		h = 3
 	}
 	return h
+}
+
+func (m ViewerModel) maxScroll() int {
+	ms := len(m.visualLines) - m.bodyHeight()
+	if ms < 0 {
+		return 0
+	}
+	return ms
+}
+
+func (m *ViewerModel) clampScroll() {
+	if m.scrollOffset < 0 {
+		m.scrollOffset = 0
+	}
+	if ms := m.maxScroll(); m.scrollOffset > ms {
+		m.scrollOffset = ms
+	}
 }
 
 func (m ViewerModel) View() string {
@@ -164,11 +177,11 @@ func (m ViewerModel) renderHeader() string {
 	_ = lineInfo
 
 	scroll := right.Render(func() string {
-		if len(m.lines) == 0 {
+		if len(m.visualLines) == 0 {
 			return ""
 		}
 		pct := 0
-		maxScroll := len(m.lines) - m.bodyHeight()
+		maxScroll := m.maxScroll()
 		if maxScroll > 0 {
 			pct = m.scrollOffset * 100 / maxScroll
 		}
@@ -202,48 +215,73 @@ func (m ViewerModel) renderBody() string {
 	}
 
 	end := m.scrollOffset + bh
-	if end > len(m.lines) {
-		end = len(m.lines)
+	if end > len(m.visualLines) {
+		end = len(m.visualLines)
 	}
-	visible := m.lines[m.scrollOffset:end]
-
-	// Render with table block detection
-	var styled []string
-	i := 0
-	for i < len(visible) {
-		if isTableLine(visible[i]) {
-			// Collect consecutive table lines
-			tableStart := i
-			for i < len(visible) && isTableLine(visible[i]) {
-				i++
-			}
-			tableLines := visible[tableStart:i]
-
-			// Also look ahead in full document for remaining table rows
-			// that may be just beyond the visible window, to get correct column widths
-			fullTableStart := m.scrollOffset + tableStart
-			fullTableEnd := fullTableStart
-			for fullTableEnd < len(m.lines) && isTableLine(m.lines[fullTableEnd]) {
-				fullTableEnd++
-			}
-			fullTable := m.lines[fullTableStart:fullTableEnd]
-
-			// Compute column widths from the full table, render only visible rows
-			colWidths := computeColumnWidths(fullTable, m.width-6)
-			rendered := m.renderTableBlock(tableLines, colWidths, fullTableStart)
-			styled = append(styled, rendered...)
-		} else {
-			styled = append(styled, m.styleLine(visible[i]))
-			i++
-		}
+	var visible []string
+	if m.scrollOffset < len(m.visualLines) {
+		visible = append(visible, m.visualLines[m.scrollOffset:end]...)
 	}
 
 	// Pad to fill height
-	for len(styled) < bh {
-		styled = append(styled, "")
+	for len(visible) < bh {
+		visible = append(visible, "")
 	}
 
-	return padStyle.Render(strings.Join(styled, "\n"))
+	return padStyle.Render(strings.Join(visible, "\n"))
+}
+
+// rebuildVisualLines walks the source lines, rendering tables as blocks and
+// word-wrapping regular text to fit the current width. The result is cached in
+// m.visualLines so scrolling and slicing operate on visual (post-wrap) rows.
+func (m *ViewerModel) rebuildVisualLines() {
+	m.visualWidth = m.width
+	m.visualLines = m.visualLines[:0]
+
+	if m.width <= 0 || len(m.lines) == 0 {
+		return
+	}
+
+	wrapWidth := m.width - 4 // matches padStyle Padding(0, 2)
+	if wrapWidth < 1 {
+		wrapWidth = 1
+	}
+
+	i := 0
+	for i < len(m.lines) {
+		if isTableLine(m.lines[i]) {
+			tableStart := i
+			for i < len(m.lines) && isTableLine(m.lines[i]) {
+				i++
+			}
+			tableLines := m.lines[tableStart:i]
+			colWidths := computeColumnWidths(tableLines, m.width-6)
+			rendered := m.renderTableBlock(tableLines, colWidths, tableStart)
+			m.visualLines = append(m.visualLines, rendered...)
+			continue
+		}
+
+		styled := m.styleLine(m.lines[i])
+		m.visualLines = append(m.visualLines, wrapStyledLine(styled, wrapWidth)...)
+		i++
+	}
+}
+
+// wrapStyledLine soft-wraps an already-styled (ANSI) line to the given width,
+// returning one entry per visual row. Uses lipgloss's ANSI-aware width sizing.
+func wrapStyledLine(styled string, width int) []string {
+	if width <= 0 || styled == "" {
+		return []string{styled}
+	}
+	if lipgloss.Width(styled) <= width {
+		return []string{styled}
+	}
+	wrapped := lipgloss.NewStyle().Width(width).Render(styled)
+	parts := strings.Split(wrapped, "\n")
+	for i, p := range parts {
+		parts[i] = strings.TrimRight(p, " ")
+	}
+	return parts
 }
 
 // isTableLine checks if a line is part of a markdown table.
