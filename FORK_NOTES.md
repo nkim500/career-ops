@@ -52,7 +52,7 @@ Features and substantive local changes that live in this fork but not upstream. 
 | 2026-04-13 | `213eeef` (PR #5) | Batch Sonnet workers + post-worker score fallback | `batch/batch-runner.sh` forces `--model sonnet`, adds `--prompt-file` flag, translates worker prompt to English. New `batch/post-worker.mjs` parses the report the worker wrote and synthesizes `batch/tracker-additions/{id}.tsv` when the worker skipped it. New `batch/batch-prompt-eval-only.md` prompt variant. |
 | 2026-04-13 | `6ff22b3` (PR #4) | Dashboard viewer text wrap | `dashboard/internal/ui/screens/viewer.go` wraps long lines instead of overflowing horizontally. |
 | 2026-04-13 | `c57aaca` (PR #3) | Sync-upstream script | `scripts/sync-upstream.sh` fetches santifer's main by URL without adding a remote, merges on a throwaway branch, keeps `main` untouched until review. Prevents accidental PRs to santifer. Also `docs/syncing-from-santifer.md`. |
-| 2026-04-12 | `ee21343` (PR #2) | **SUPERSEDED by upstream 4b5093a** — see merge log 2026-04-13 | Local `'r'` refresh shortcut for pipeline screen. Replaced by upstream's larger, test-covered implementation during the 2026-04-13 sync. |
+| 2026-04-12 | `ee21343` (PR #2) | **SUPERSEDED by upstream `4b5093a` on 2026-04-13** | Local `'r'` refresh shortcut for pipeline screen. Replaced by upstream's larger, test-covered `WithReloadedData` implementation during the 2026-04-13 sync. See decision log. |
 | 2026-04-12 | `fc3bf2b` | CI fixes for English mode filenames + progress.go | Updated `test-all.mjs` checks to use English mode filenames. Also touched dashboard progress code. |
 | 2026-04-12 | `539105b` | Batch prompt translated to English; dashboard status-replace fix; gitignore cleanup | Part of the English-language invariant. |
 | 2026-04-12 | `7070671` (PR #1) | Auto-save raw JD text | `feat/auto-save-jd` — pipeline processing now saves both the structured summary AND the verbatim raw JD text to `jds/` files. Commits `fb25bce`, `8c433f9`. |
@@ -73,11 +73,44 @@ One entry per sync with santifer. Record what was accepted, what was skipped, wh
 
 <!-- next sync entry goes here -->
 
-### 2026-04-13 — Security/CI hardening sync (pending)
+### 2026-04-13 — santifer v1.4.0 security/CI hardening sync
 
-**Upstream range**: 15 commits, ending at santifer/main `4b5093a feat(dashboard): add manual refresh shortcut (#246)` (release 1.4.0).
+**Sync branch**: `sync/upstream-2026-04-13`
+**Upstream tip**: `4b5093a feat(dashboard): add manual refresh shortcut (#246)` (release 1.4.0)
+**Merge commit**: `5e98c14` (+ fixup `ce35c5b` for main.go)
+**Commits integrated**: 15
 
-*This entry will be populated when the sync branch is merged.*
+**Taken as-is (additive, no conflict)**:
+- `23c1282` — gold-standard OSS automations: `codeql.yml`, `dependency-review.yml` (`fail-on-severity: high`), `stale.yml`, `release.yml`, `sbom.yml`
+- `c99d5a6` — `execFileSync` shell-injection fix in `test-all.mjs` (cleanly merged on top of local English mode filename references)
+- `4b834f6` — ensure `data/` and `output/` dirs exist before writing (touched `dedup-tracker.mjs`, `generate-pdf.mjs`, `merge-tracker.mjs`, `normalize-statuses.mjs`, `scan.mjs`, `verify-pipeline.mjs`)
+- `4da772d` — stopword filtering + overlap ratio in `roleMatch` (`scan.mjs`)
+- `394cb2a`, `a929392`, `2d4090d` — docs: `README.zh-TW.md`, `docs/SCRIPTS.md`, `batch/README.md`, `examples/README.md`, `templates/README.md` (all READMEs auto-merged cleanly)
+- `8032c33` — `actions/checkout` v4 → v6
+- `20c9319` — `actions/setup-go` v5 → v6
+- `2ecf572` — `pull_request_target` for labeler on fork PRs
+- `480652d` — release 1.4.0 marker (`CHANGELOG.md`, `.release-please-manifest.json`)
+- `62eae6c` — **partial**: kept `.coderabbit.yaml` (inert until GitHub app is installed), kept release-please config changes. **Skipped `renovate.json`** — see Skipped below.
+
+**Conflict resolutions**:
+- **`dashboard/internal/ui/screens/pipeline.go` + `dashboard/main.go`** — upstream `4b5093a` (manual refresh shortcut) supersedes local `d247675` (`'r'` shortcut). Taken upstream wholesale because: (a) includes `pipeline_test.go` with 72 lines of test coverage, (b) identity-based re-selection after reload (tracks `ReportPath`/`Company`/`Role`) vs local's index-clamping, (c) cleaner message-passing architecture via `PipelineRefreshMsg{CareerOpsPath}` handled in `main.go`. Local's `Refresh` method and its main.go handler are **removed**. main.go auto-merge was broken (duplicate type-switch case on `PipelineRefreshMsg`) — fixed by overwriting with `FETCH_HEAD:dashboard/main.go` in follow-up commit `ce35c5b`.
+- **`batch/batch-runner.sh`** — kept local Sonnet worker config (`--model sonnet`, `--prompt-file` flag, English worker prompt, `post-worker.mjs` delegation) AND added upstream `cb0c7f7` `--min-score` flag. The min-score gate auto-merged into the correct position right after local's post-worker.mjs score extraction, so it reads `$score` from the helper's stdout. No behavioral port needed — structurally compatible.
+- **`test-all.mjs`** — auto-merged cleanly. Upstream's `execFileSync` refactor landed on top of local's English mode filename list without manual intervention.
+
+**Skipped**:
+- **`renovate.json`** (from `62eae6c`). Reason: the fork already has Dependabot configured with weekly schedules for npm / gomod / github-actions AND Dependabot vulnerability alerts + auto-fixes enabled (commits today). Running Renovate alongside Dependabot produces duplicate update PRs. One bot is enough.
+
+**New PR-blocking CI checks on this fork** (takes effect on the next PR after this merge lands):
+- `dependency-review` — fails on high-severity CVE additions
+- `codeql` — static analysis for JS/TS + Go (matrix)
+- Existing: `test-all.mjs`
+
+Note: `main` branch is **not protected** yet, so these checks don't yet *block* merges — they just report. Enabling branch protection with these checks as required is a separate follow-up, flagged in an earlier conversation but not done in this sync.
+
+**Verification on `sync/upstream-2026-04-13`**:
+- `go build ./...` in `dashboard/` — OK
+- `go test ./...` in `dashboard/` — OK (`TestWithReloadedDataPreservesStateAndSelection` passes)
+- `node test-all.mjs` — 62 passed, 1 failed, 7 warnings. **The single failure is pre-existing** (`verify-pipeline.mjs` flags data quality issues in `data/applications.md`: rows #3 and #5 reference report files that don't exist on disk, rows #18/37/38/39/40 have `-` in the score column). These errors exist on `main` before the merge and are unrelated to the sync. Follow-up: clean up `data/applications.md` as a separate task.
 
 ---
 
