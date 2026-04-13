@@ -8,6 +8,12 @@ The portfolio that goes with this system is also open source: [cv-santiago](http
 
 **It will work out of the box, but it's designed to be made yours.** If the archetypes don't match your career, the modes are in the wrong language, or the scoring doesn't fit your priorities -- just ask. You (AI Agent) can edit the user's files. The user says "change the archetypes to data engineering roles" and you do it. That's the whole point.
 
+## Fork Notes (READ BEFORE UPSTREAM SYNCS)
+
+This repo is a fork (`nkim500/career-ops`) of `santifer/career-ops`. `FORK_NOTES.md` at the repo root is the authoritative record of how this fork diverges — invariants, local feature log, and upstream sync decision log.
+
+**Before running `scripts/sync-upstream.sh` or resolving any merge from santifer/main, read `FORK_NOTES.md` first.** The invariants there (English-language primacy, additive job-board domain, preserved local features) override upstream when they conflict. Append a new entry to the Upstream Sync Decision Log after every sync so the next one can pick up cleanly.
+
 ## Data Contract (CRITICAL)
 
 There are two layers. Read `DATA_CONTRACT.md` for the full list.
