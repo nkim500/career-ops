@@ -41,6 +41,7 @@ Options:
   --retry-failed       Only retry offers marked as "failed" in state
   --start-from N       Start from offer ID N (skip earlier IDs)
   --max-retries N      Max retry attempts per offer (default: 2)
+  --prompt-file PATH   Worker system prompt file (default: batch/batch-prompt.md)
   -h, --help           Show this help
 
 Files:
@@ -73,6 +74,7 @@ while [[ $# -gt 0 ]]; do
     --retry-failed) RETRY_FAILED=true; shift ;;
     --start-from) START_FROM="$2"; shift 2 ;;
     --max-retries) MAX_RETRIES="$2"; shift 2 ;;
+    --prompt-file) PROMPT_FILE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1"; usage; exit 1 ;;
   esac
@@ -319,7 +321,7 @@ process_offer() {
 
   # Build the prompt with placeholders replaced
   local prompt
-  prompt="Procesa esta oferta de empleo. Ejecuta el pipeline completo: evaluación A-F + report .md + PDF + tracker line."
+  prompt="Process this job offer. Run the complete pipeline: A-F evaluation + report .md + PDF + tracker line."
   prompt="$prompt URL: $url"
   prompt="$prompt JD file: $jd_file"
   prompt="$prompt Report number: $report_num"
@@ -347,9 +349,10 @@ process_offer() {
     -e "s|{{ID}}|${esc_id}|g" \
     "$PROMPT_FILE" > "$resolved_prompt"
 
-  # Launch claude -p worker (uses default model from Claude Max subscription)
+  # Launch claude -p worker on Sonnet (cheaper than Opus for structured scoring)
   local exit_code=0
   claude -p \
+    --model sonnet \
     --dangerously-skip-permissions \
     --append-system-prompt-file "$resolved_prompt" \
     "$prompt" \
@@ -362,12 +365,15 @@ process_offer() {
   completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
   if [[ $exit_code -eq 0 ]]; then
-    # Try to extract score from worker output
+    # Score extraction + tracker TSV fallback.
+    # post-worker.mjs parses the report .md the worker just wrote, extracts
+    # the score, and synthesizes batch/tracker-additions/{id}.tsv if the
+    # worker skipped that step (Sonnet on long prompts sometimes does).
     local score="-"
-    local score_match
-   score_match=$(sed -nE 's/.*"score":[[:space:]]*([0-9.]+).*/\1/p' "$log_file" 2>/dev/null | head -1 || true)
-    if [[ -n "$score_match" ]]; then
-      score="$score_match"
+    local post_output
+    post_output=$(node "$BATCH_DIR/post-worker.mjs" "$id" "$report_num" "$date" "$url" 2>>"$log_file" || echo "-")
+    if [[ -n "$post_output" && "$post_output" != "-" ]]; then
+      score="$post_output"
     fi
 
     update_state "$id" "$url" "completed" "$started_at" "$completed_at" "$report_num" "$score" "-" "$retries"
