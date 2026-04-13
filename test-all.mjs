@@ -345,6 +345,43 @@ if (fileExists('data/follow-ups.md')) {
   warn('data/follow-ups.md does not exist (OK if no follow-ups yet)');
 }
 
+// ── 12. CADENCE SCRIPT EXTENDED OUTPUT ──────────────────────────────────────
+
+console.log('\n12. Cadence script extended output');
+
+try {
+  const cadenceResult = run('node', ['followup-cadence.mjs']);
+  if (cadenceResult !== null) {
+    const cadenceJson = JSON.parse(cadenceResult);
+
+    if ('standalone_tasks' in cadenceJson) {
+      pass('followup-cadence.mjs output has standalone_tasks key');
+    } else {
+      fail('followup-cadence.mjs output missing standalone_tasks key');
+    }
+
+    if ('entries' in cadenceJson && 'metadata' in cadenceJson && 'cadenceConfig' in cadenceJson) {
+      pass('followup-cadence.mjs preserves existing output keys');
+    } else {
+      fail('followup-cadence.mjs missing existing output keys');
+    }
+
+    // Verify standalone_tasks contains no app-linked rows
+    if (Array.isArray(cadenceJson.standalone_tasks)) {
+      const appLinkedInStandalone = cadenceJson.standalone_tasks.filter(t => t.appNum && !isNaN(t.appNum));
+      if (appLinkedInStandalone.length === 0) {
+        pass('standalone_tasks contains no app-linked rows');
+      } else {
+        fail(`standalone_tasks contains ${appLinkedInStandalone.length} app-linked rows`);
+      }
+    }
+  } else {
+    fail('followup-cadence.mjs crashed');
+  }
+} catch (e) {
+  fail(`Cadence script test crashed: ${e.message}`);
+}
+
 // ── SUMMARY ─────────────────────────────────────────────────────
 
 console.log('\n' + '='.repeat(50));
