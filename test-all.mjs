@@ -296,6 +296,55 @@ if (fileExists('VERSION')) {
   fail('VERSION file missing');
 }
 
+// ── 11. FOLLOW-UPS SCHEMA ───────────────────────────────────────
+
+console.log('\n11. Follow-ups schema validation');
+
+if (fileExists('data/follow-ups.md')) {
+  const fuContent = readFile('data/follow-ups.md');
+  const fuLines = fuContent.split('\n').filter(l => l.startsWith('|'));
+  const validTypes = ['followup', 'task', 'debrief-action'];
+  const validStatuses = ['open', 'done', 'dropped'];
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+  let fuErrors = 0;
+
+  // Check header row
+  if (fuLines.length > 0) {
+    const headerCols = fuLines[0].split('|').map(s => s.trim()).filter(Boolean);
+    const expectedHeader = ['#', 'App#', 'Type', 'Date', 'Due', 'Company', 'Role', 'Channel', 'Contact', 'Status', 'Notes'];
+    if (headerCols.length === expectedHeader.length && headerCols.every((c, i) => c === expectedHeader[i])) {
+      pass('follow-ups.md header matches expected schema');
+    } else {
+      fail(`follow-ups.md header mismatch. Got: ${headerCols.join(' | ')}`);
+      fuErrors++;
+    }
+  }
+
+  // Check data rows (skip header + separator)
+  for (const line of fuLines.slice(2)) {
+    const cols = line.split('|').map(s => s.trim()).filter(Boolean);
+    if (cols.length < 11) { fail(`follow-ups.md row has ${cols.length} columns, expected 11: ${cols[0]}`); fuErrors++; continue; }
+
+    const rowNum = cols[0];
+    const type = cols[2];
+    const date = cols[3];
+    const due = cols[4];
+    const status = cols[9];
+
+    if (isNaN(parseInt(rowNum))) { fail(`follow-ups.md row # is not a number: "${rowNum}"`); fuErrors++; }
+    if (!validTypes.includes(type)) { fail(`follow-ups.md row ${rowNum} invalid Type: "${type}"`); fuErrors++; }
+    if (!dateRe.test(date)) { fail(`follow-ups.md row ${rowNum} invalid Date: "${date}"`); fuErrors++; }
+    if (due !== '' && due !== '-' && !dateRe.test(due)) { fail(`follow-ups.md row ${rowNum} invalid Due: "${due}"`); fuErrors++; }
+    if (!validStatuses.includes(status)) { fail(`follow-ups.md row ${rowNum} invalid Status: "${status}"`); fuErrors++; }
+  }
+
+  if (fuErrors === 0) {
+    pass('All follow-ups.md data rows pass schema validation');
+  }
+} else {
+  warn('data/follow-ups.md does not exist (OK if no follow-ups yet)');
+}
+
 // ── SUMMARY ─────────────────────────────────────────────────────
 
 console.log('\n' + '='.repeat(50));
