@@ -244,6 +244,7 @@ const expectedModes = [
   '_shared.md', '_profile.template.md', 'offer.md', 'pdf.md', 'scan.md',
   'batch.md', 'apply.md', 'auto-pipeline.md', 'contact.md', 'deep.md',
   'offers.md', 'pipeline.md', 'project.md', 'tracker.md', 'training.md',
+  'debrief.md',
 ];
 
 for (const mode of expectedModes) {
