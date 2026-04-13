@@ -33,6 +33,13 @@ type appModel struct {
 	progressMetrics model.ProgressMetrics
 }
 
+func (m *appModel) reloadPipelineData() {
+	apps := data.ParseApplications(m.careerOpsPath)
+	metrics := data.ComputeMetrics(apps)
+	m.progressMetrics = data.ComputeProgressMetrics(apps)
+	m.pipeline = m.pipeline.WithReloadedData(apps, metrics)
+}
+
 func (m appModel) Init() tea.Cmd {
 	return nil
 }
@@ -59,41 +66,17 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.pipeline.EnrichReport(msg.ReportPath, archetype, tldr, remote, comp)
 		return m, nil
 
-	case screens.PipelineRefreshMsg:
-		apps := data.ParseApplications(msg.CareerOpsPath)
-		if apps == nil {
-			return m, nil
-		}
-		metrics := data.ComputeMetrics(apps)
-		m.progressMetrics = data.ComputeProgressMetrics(apps)
-		m.pipeline.Refresh(apps, metrics)
-		for _, app := range apps {
-			if app.ReportPath == "" {
-				continue
-			}
-			archetype, tldr, remote, comp := data.LoadReportSummary(msg.CareerOpsPath, app.ReportPath)
-			if archetype != "" || tldr != "" || remote != "" || comp != "" {
-				m.pipeline.EnrichReport(app.ReportPath, archetype, tldr, remote, comp)
-			}
-		}
-		return m, nil
-
 	case screens.PipelineUpdateStatusMsg:
 		err := data.UpdateApplicationStatus(msg.CareerOpsPath, msg.App, msg.NewStatus)
 		if err != nil {
 			// Log the error but still reload data to keep UI consistent
 			fmt.Fprintf(os.Stderr, "WARN: status update failed: %v\n", err)
 		}
-		apps := data.ParseApplications(m.careerOpsPath)
-		metrics := data.ComputeMetrics(apps)
-		m.progressMetrics = data.ComputeProgressMetrics(apps)
-		old := m.pipeline
-		m.pipeline = screens.NewPipelineModel(
-			m.theme,
-			apps, metrics, m.careerOpsPath,
-			old.Width(), old.Height(),
-		)
-		m.pipeline.CopyReportCache(&old)
+		m.reloadPipelineData()
+		return m, nil
+
+	case screens.PipelineRefreshMsg:
+		m.reloadPipelineData()
 		return m, nil
 
 	case screens.PipelineOpenReportMsg:
