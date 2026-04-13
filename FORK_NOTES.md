@@ -49,6 +49,7 @@ Features and substantive local changes that live in this fork but not upstream. 
 
 | Date | Merge SHA | Feature | Notes |
 |------|-----------|---------|-------|
+| 2026-04-13 | `TBD` | Correspondence tracker: interview archive + debrief + task tracker | `data/follow-ups.md` extended to 11-column schema (Type/Due/Status). New `modes/debrief.md`. `modes/followup.md` gains add/list/done verbs. `followup-cadence.mjs` emits `standalone_tasks`. Spec: `docs/superpowers/specs/2026-04-13-correspondence-tracker-design.md`. |
 | 2026-04-13 | `213eeef` (PR #5) | Batch Sonnet workers + post-worker score fallback | `batch/batch-runner.sh` forces `--model sonnet`, adds `--prompt-file` flag, translates worker prompt to English. New `batch/post-worker.mjs` parses the report the worker wrote and synthesizes `batch/tracker-additions/{id}.tsv` when the worker skipped it. New `batch/batch-prompt-eval-only.md` prompt variant. |
 | 2026-04-13 | `6ff22b3` (PR #4) | Dashboard viewer text wrap | `dashboard/internal/ui/screens/viewer.go` wraps long lines instead of overflowing horizontally. |
 | 2026-04-13 | `c57aaca` (PR #3) | Sync-upstream script | `scripts/sync-upstream.sh` fetches santifer's main by URL without adding a remote, merges on a throwaway branch, keeps `main` untouched until review. Prevents accidental PRs to santifer. Also `docs/syncing-from-santifer.md`. |

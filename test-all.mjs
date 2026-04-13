@@ -244,6 +244,7 @@ const expectedModes = [
   '_shared.md', '_profile.template.md', 'offer.md', 'pdf.md', 'scan.md',
   'batch.md', 'apply.md', 'auto-pipeline.md', 'contact.md', 'deep.md',
   'offers.md', 'pipeline.md', 'project.md', 'tracker.md', 'training.md',
+  'debrief.md',
 ];
 
 for (const mode of expectedModes) {
@@ -294,6 +295,92 @@ if (fileExists('VERSION')) {
   }
 } else {
   fail('VERSION file missing');
+}
+
+// ── 11. FOLLOW-UPS SCHEMA ───────────────────────────────────────
+
+console.log('\n11. Follow-ups schema validation');
+
+if (fileExists('data/follow-ups.md')) {
+  const fuContent = readFile('data/follow-ups.md');
+  const fuLines = fuContent.split('\n').filter(l => l.startsWith('|'));
+  const validTypes = ['followup', 'task', 'debrief-action'];
+  const validStatuses = ['open', 'done', 'dropped'];
+  const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+  let fuErrors = 0;
+
+  // Check header row
+  if (fuLines.length > 0) {
+    const headerCols = fuLines[0].split('|').map(s => s.trim()).filter(Boolean);
+    const expectedHeader = ['#', 'App#', 'Type', 'Date', 'Due', 'Company', 'Role', 'Channel', 'Contact', 'Status', 'Notes'];
+    if (headerCols.length === expectedHeader.length && headerCols.every((c, i) => c === expectedHeader[i])) {
+      pass('follow-ups.md header matches expected schema');
+    } else {
+      fail(`follow-ups.md header mismatch. Got: ${headerCols.join(' | ')}`);
+      fuErrors++;
+    }
+  }
+
+  // Check data rows (skip header + separator)
+  for (const line of fuLines.slice(2)) {
+    const cols = line.split('|').map(s => s.trim()).filter(Boolean);
+    if (cols.length < 11) { fail(`follow-ups.md row has ${cols.length} columns, expected 11: ${cols[0]}`); fuErrors++; continue; }
+
+    const rowNum = cols[0];
+    const type = cols[2];
+    const date = cols[3];
+    const due = cols[4];
+    const status = cols[9];
+
+    if (isNaN(parseInt(rowNum))) { fail(`follow-ups.md row # is not a number: "${rowNum}"`); fuErrors++; }
+    if (!validTypes.includes(type)) { fail(`follow-ups.md row ${rowNum} invalid Type: "${type}"`); fuErrors++; }
+    if (!dateRe.test(date)) { fail(`follow-ups.md row ${rowNum} invalid Date: "${date}"`); fuErrors++; }
+    if (due !== '' && due !== '-' && !dateRe.test(due)) { fail(`follow-ups.md row ${rowNum} invalid Due: "${due}"`); fuErrors++; }
+    if (!validStatuses.includes(status)) { fail(`follow-ups.md row ${rowNum} invalid Status: "${status}"`); fuErrors++; }
+  }
+
+  if (fuErrors === 0) {
+    pass('All follow-ups.md data rows pass schema validation');
+  }
+} else {
+  warn('data/follow-ups.md does not exist (OK if no follow-ups yet)');
+}
+
+// ── 12. CADENCE SCRIPT EXTENDED OUTPUT ──────────────────────────────────────
+
+console.log('\n12. Cadence script extended output');
+
+try {
+  const cadenceResult = run('node', ['followup-cadence.mjs']);
+  if (cadenceResult !== null) {
+    const cadenceJson = JSON.parse(cadenceResult);
+
+    if ('standalone_tasks' in cadenceJson) {
+      pass('followup-cadence.mjs output has standalone_tasks key');
+    } else {
+      fail('followup-cadence.mjs output missing standalone_tasks key');
+    }
+
+    if ('entries' in cadenceJson && 'metadata' in cadenceJson && 'cadenceConfig' in cadenceJson) {
+      pass('followup-cadence.mjs preserves existing output keys');
+    } else {
+      fail('followup-cadence.mjs missing existing output keys');
+    }
+
+    // Verify standalone_tasks contains no app-linked rows
+    if (Array.isArray(cadenceJson.standalone_tasks)) {
+      const appLinkedInStandalone = cadenceJson.standalone_tasks.filter(t => t.appNum && !isNaN(t.appNum));
+      if (appLinkedInStandalone.length === 0) {
+        pass('standalone_tasks contains no app-linked rows');
+      } else {
+        fail(`standalone_tasks contains ${appLinkedInStandalone.length} app-linked rows`);
+      }
+    }
+  } else {
+    fail('followup-cadence.mjs crashed');
+  }
+} catch (e) {
+  fail(`Cadence script test crashed: ${e.message}`);
 }
 
 // ── SUMMARY ─────────────────────────────────────────────────────

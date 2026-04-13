@@ -64,6 +64,8 @@ AI-powered job search automation built on Claude Code: pipeline tracking, offer 
 | `article-digest.md` | Compact proof points from portfolio (optional) |
 | `interview-prep/story-bank.md` | Accumulated STAR+R stories across evaluations |
 | `interview-prep/{company}-{role}.md` | Company-specific interview intel reports |
+| `interview-prep/{company}-{role}/rounds/` | Interview transcripts + Granola summaries per round |
+| `interview-prep/{company}-{role}/debriefs/` | Structured debriefs with action items |
 | `analyze-patterns.mjs` | Pattern analysis script (JSON output) |
 | `followup-cadence.mjs` | Follow-up cadence calculator (JSON output) |
 | `data/follow-ups.md` | Follow-up history tracker |
@@ -227,6 +229,7 @@ Default modes are in `modes/` (English). Additional language-specific modes are 
 | Wants LinkedIn outreach | `contact` |
 | Asks for company research | `deep` |
 | Preps for interview at specific company | `interview-prep` |
+| Debriefs after an interview round | `debrief` |
 | Wants to generate CV/PDF | `pdf` |
 | Evaluates a course/cert | `training` |
 | Evaluates portfolio project | `project` |
@@ -237,6 +240,7 @@ Default modes are in `modes/` (English). Additional language-specific modes are 
 | Batch processes offers | `batch` |
 | Asks about rejection patterns or wants to improve targeting | `patterns` |
 | Asks about follow-ups or application cadence | `followup` |
+| Adds/lists/completes tasks or obligations | `followup add`/`list`/`done` |
 
 ### CV Source of Truth
 

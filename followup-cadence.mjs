@@ -102,7 +102,7 @@ function parseTracker() {
   return entries;
 }
 
-// --- Parse follow-ups.md ---
+// --- Parse follow-ups.md (new 11-column schema) ---
 function parseFollowups() {
   if (!existsSync(FOLLOWUPS_FILE)) return [];
   const content = readFileSync(FOLLOWUPS_FILE, 'utf-8');
@@ -110,18 +110,22 @@ function parseFollowups() {
   for (const line of content.split('\n')) {
     if (!line.startsWith('|')) continue;
     const parts = line.split('|').map(s => s.trim());
-    if (parts.length < 8) continue;
+    if (parts.length < 12) continue; // 11 columns + leading/trailing empty from split
     const num = parseInt(parts[1]);
     if (isNaN(num)) continue;
+    const appNumRaw = parts[2].replace(/-/g, '').trim();
     entries.push({
       num,
-      appNum: parseInt(parts[2]),
-      date: parts[3],
-      company: parts[4],
-      role: parts[5],
-      channel: parts[6],
-      contact: parts[7],
-      notes: parts[8] || '',
+      appNum: appNumRaw ? parseInt(appNumRaw) : null,
+      type: parts[3] || 'followup',
+      date: parts[4],
+      due: parts[5] && parts[5] !== '-' ? parts[5] : null,
+      company: parts[6],
+      role: parts[7],
+      channel: parts[8] && parts[8] !== '-' ? parts[8] : null,
+      contact: parts[9] && parts[9] !== '-' ? parts[9] : null,
+      status: parts[10] || 'open',
+      notes: parts[11] || '',
     });
   }
   return entries;
@@ -193,15 +197,27 @@ function computeNextFollowupDate(status, appDate, lastFollowupDate, followupCoun
 // --- Main analysis ---
 function analyze() {
   const apps = parseTracker();
-  if (apps.length === 0) {
-    return { error: 'No applications found in tracker.' };
+  const allFollowups = parseFollowups();
+
+  if (apps.length === 0 && allFollowups.length === 0) {
+    return {
+      metadata: { analysisDate: today().toISOString().split('T')[0], totalTracked: 0, actionable: 0, overdue: 0, urgent: 0, cold: 0, waiting: 0, standaloneTasks: 0, standaloneOverdue: 0 },
+      entries: [],
+      standalone_tasks: [],
+      cadenceConfig: CADENCE,
+    };
   }
 
-  const followups = parseFollowups();
+  // Filter out done/dropped
+  const activeFollowups = allFollowups.filter(fu => fu.status === 'open');
 
-  // Group follow-ups by app number
+  // Separate app-linked followups from standalone tasks
+  const appLinkedFollowups = activeFollowups.filter(fu => fu.type === 'followup' && fu.appNum && !isNaN(fu.appNum));
+  const standaloneTasks = activeFollowups.filter(fu => fu.type !== 'followup' || !fu.appNum || isNaN(fu.appNum));
+
+  // Group app-linked follow-ups by app number
   const followupsByApp = new Map();
-  for (const fu of followups) {
+  for (const fu of appLinkedFollowups) {
     if (!followupsByApp.has(fu.appNum)) followupsByApp.set(fu.appNum, []);
     followupsByApp.get(fu.appNum).push(fu);
   }
@@ -261,6 +277,25 @@ function analyze() {
   const urgencyOrder = { urgent: 0, overdue: 1, waiting: 2, cold: 3 };
   entries.sort((a, b) => (urgencyOrder[a.urgency] ?? 9) - (urgencyOrder[b.urgency] ?? 9));
 
+  // Compute standalone task urgency from Due date only
+  const standaloneWithUrgency = standaloneTasks.map(t => {
+    let urgency = 'open';
+    if (t.due) {
+      const dueDate = parseDate(t.due);
+      if (dueDate) {
+        const daysUntil = daysBetween(now, dueDate);
+        if (daysUntil < 0) urgency = 'overdue';
+        else if (daysUntil <= 3) urgency = 'due-soon';
+        else urgency = 'waiting';
+      }
+    }
+    return { ...t, urgency };
+  });
+
+  // Sort standalone: overdue first, then due-soon, then waiting, then open
+  const standaloneOrder = { overdue: 0, 'due-soon': 1, waiting: 2, open: 3 };
+  standaloneWithUrgency.sort((a, b) => (standaloneOrder[a.urgency] ?? 9) - (standaloneOrder[b.urgency] ?? 9));
+
   const filtered = overdueOnly
     ? entries.filter(e => e.urgency === 'overdue' || e.urgency === 'urgent')
     : entries;
@@ -274,8 +309,11 @@ function analyze() {
       urgent: entries.filter(e => e.urgency === 'urgent').length,
       cold: entries.filter(e => e.urgency === 'cold').length,
       waiting: entries.filter(e => e.urgency === 'waiting').length,
+      standaloneTasks: standaloneWithUrgency.length,
+      standaloneOverdue: standaloneWithUrgency.filter(t => t.urgency === 'overdue').length,
     },
     entries: filtered,
+    standalone_tasks: standaloneWithUrgency,
     cadenceConfig: CADENCE,
   };
 }
