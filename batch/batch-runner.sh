@@ -27,6 +27,7 @@ DRY_RUN=false
 RETRY_FAILED=false
 START_FROM=0
 MAX_RETRIES=2
+MIN_SCORE=0
 
 usage() {
   cat <<'USAGE'
@@ -42,6 +43,7 @@ Options:
   --start-from N       Start from offer ID N (skip earlier IDs)
   --max-retries N      Max retry attempts per offer (default: 2)
   --prompt-file PATH   Worker system prompt file (default: batch/batch-prompt.md)
+  --min-score N        Skip PDF/tracker for offers scoring below N (default: 0 = off)
   -h, --help           Show this help
 
 Files:
@@ -75,6 +77,7 @@ while [[ $# -gt 0 ]]; do
     --start-from) START_FROM="$2"; shift 2 ;;
     --max-retries) MAX_RETRIES="$2"; shift 2 ;;
     --prompt-file) PROMPT_FILE="$2"; shift 2 ;;
+    --min-score) MIN_SCORE="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1"; usage; exit 1 ;;
   esac
@@ -374,6 +377,15 @@ process_offer() {
     post_output=$(node "$BATCH_DIR/post-worker.mjs" "$id" "$report_num" "$date" "$url" 2>>"$log_file" || echo "-")
     if [[ -n "$post_output" && "$post_output" != "-" ]]; then
       score="$post_output"
+    fi
+
+    # Check min-score gate
+    if [[ "$score" != "-" && -n "$score" ]] && (( $(echo "$MIN_SCORE > 0" | bc -l) )); then
+      if (( $(echo "$score < $MIN_SCORE" | bc -l) )); then
+        update_state "$id" "$url" "skipped" "$started_at" "$completed_at" "$report_num" "$score" "below-min-score" "$retries"
+        echo "    ⏭️  Skipped (score: $score < min-score: $MIN_SCORE)"
+        continue
+      fi
     fi
 
     update_state "$id" "$url" "completed" "$started_at" "$completed_at" "$report_num" "$score" "-" "$retries"
