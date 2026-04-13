@@ -24,6 +24,14 @@ SYNC_BRANCH="sync/upstream-$(date +%Y-%m-%d)"
 
 # -- preconditions ----------------------------------------------------------
 
+cat <<'BANNER'
+==> Upstream sync starting.
+==> READ FORK_NOTES.md before resolving any conflicts.
+==> Invariants: (1) English is primary language (file names too),
+==>             (2) job-board/ATS domain is additive,
+==>             (3) local features preserved unless explicitly superseded.
+BANNER
+
 if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "ERROR: not inside a git working tree." >&2
   exit 1
