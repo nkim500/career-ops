@@ -200,7 +200,12 @@ function analyze() {
   const allFollowups = parseFollowups();
 
   if (apps.length === 0 && allFollowups.length === 0) {
-    return { error: 'No applications or follow-ups found.' };
+    return {
+      metadata: { analysisDate: today().toISOString().split('T')[0], totalTracked: 0, actionable: 0, overdue: 0, urgent: 0, cold: 0, waiting: 0, standaloneTasks: 0, standaloneOverdue: 0 },
+      entries: [],
+      standalone_tasks: [],
+      cadenceConfig: CADENCE,
+    };
   }
 
   // Filter out done/dropped
