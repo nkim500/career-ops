@@ -14,6 +14,7 @@ type CareerApplication struct {
 	ReportNumber string
 	Notes        string
 	JobURL       string // URL of the original job posting
+	DatePosted   string // ISO date (YYYY-MM-DD) when the job was posted, or empty
 	// Enrichment (lazy loaded from report)
 	Archetype    string
 	TlDr         string
