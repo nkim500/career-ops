@@ -81,7 +81,7 @@ function parseGreenhouse(json, companyName) {
     url: j.absolute_url || '',
     company: companyName,
     location: j.location?.name || '',
-    datePosted: j.updated_at ? j.updated_at.slice(0, 10) : '',
+    datePosted: (j.first_published || j.updated_at || '').slice(0, 10),
   }));
 }
 
@@ -92,7 +92,7 @@ function parseAshby(json, companyName) {
     url: j.jobUrl || '',
     company: companyName,
     location: j.location || '',
-    datePosted: (j.publishedDate || j.createdAt || '') ? (j.publishedDate || j.createdAt || '').slice(0, 10) : '',
+    datePosted: (j.publishedAt || '').slice(0, 10),
   }));
 }
 
