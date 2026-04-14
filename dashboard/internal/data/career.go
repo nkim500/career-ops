@@ -280,37 +280,67 @@ func loadJobURLs(careerOpsPath string) map[string]string {
 	return reportToURL
 }
 
-// enrichFromScanHistory fills JobURL from scan-history.tsv by matching company name.
+// scanEntry holds parsed data from a single scan-history.tsv line.
+type scanEntry struct {
+	url        string
+	company    string
+	title      string
+	datePosted string
+}
+
+// parseScanHistoryLine parses a single TSV line from scan-history.tsv.
+// Supports both 6-column (legacy) and 7-column (with date_posted) formats.
+func parseScanHistoryLine(line string) scanEntry {
+	fields := strings.Split(line, "\t")
+	if len(fields) < 6 || fields[0] == "url" {
+		return scanEntry{}
+	}
+	e := scanEntry{
+		url:     fields[0],
+		title:   fields[3],
+		company: fields[4],
+	}
+	// 7-column format: url, first_seen, portal, title, company, date_posted, status
+	// 6-column format: url, first_seen, portal, title, company, status
+	if len(fields) >= 7 {
+		e.datePosted = fields[5]
+	}
+	return e
+}
+
+// enrichFromScanHistory fills JobURL and DatePosted from scan-history.tsv by matching
+// company name (and exact URL for DatePosted enrichment).
 func enrichFromScanHistory(careerOpsPath string, apps []model.CareerApplication) {
 	scanPath := filepath.Join(careerOpsPath, "scan-history.tsv")
+	if _, err := os.Stat(scanPath); err != nil {
+		scanPath = filepath.Join(careerOpsPath, "data", "scan-history.tsv")
+	}
 	scanData, err := os.ReadFile(scanPath)
 	if err != nil {
 		return
 	}
 
-	// Build company -> URL index from scan-history
-	type scanEntry struct {
-		url     string
-		company string
-		title   string
-	}
 	byCompany := make(map[string][]scanEntry)
+	byURL := make(map[string]scanEntry)
 	for _, line := range strings.Split(string(scanData), "\n") {
-		fields := strings.Split(line, "\t")
-		if len(fields) < 5 || fields[0] == "url" {
+		e := parseScanHistoryLine(line)
+		if e.url == "" || !strings.HasPrefix(e.url, "http") {
 			continue
 		}
-		url := fields[0]
-		company := fields[4]
-		title := fields[3]
-		if url == "" || !strings.HasPrefix(url, "http") {
-			continue
-		}
-		key := normalizeCompany(company)
-		byCompany[key] = append(byCompany[key], scanEntry{url: url, company: company, title: title})
+		key := normalizeCompany(e.company)
+		byCompany[key] = append(byCompany[key], e)
+		byURL[e.url] = e
 	}
 
 	for i := range apps {
+		// Enrich DatePosted by exact URL match (works even if JobURL was set by earlier strategy)
+		if apps[i].JobURL != "" {
+			if entry, ok := byURL[apps[i].JobURL]; ok && entry.datePosted != "" {
+				apps[i].DatePosted = entry.datePosted
+			}
+		}
+
+		// Enrich JobURL if still empty (existing logic)
 		if apps[i].JobURL != "" {
 			continue
 		}
@@ -318,10 +348,10 @@ func enrichFromScanHistory(careerOpsPath string, apps []model.CareerApplication)
 		matches := byCompany[key]
 		if len(matches) == 1 {
 			apps[i].JobURL = matches[0].url
+			apps[i].DatePosted = matches[0].datePosted
 		} else if len(matches) > 1 {
-			// Multiple entries: pick best role match
 			appRole := strings.ToLower(apps[i].Role)
-			best := matches[0].url
+			best := matches[0]
 			bestScore := 0
 			for _, m := range matches {
 				score := 0
@@ -333,10 +363,11 @@ func enrichFromScanHistory(careerOpsPath string, apps []model.CareerApplication)
 				}
 				if score > bestScore {
 					bestScore = score
-					best = m.url
+					best = m
 				}
 			}
-			apps[i].JobURL = best
+			apps[i].JobURL = best.url
+			apps[i].DatePosted = best.datePosted
 		}
 	}
 }
@@ -762,4 +793,35 @@ func safePct(part, whole int) float64 {
 		return 0
 	}
 	return float64(part) / float64(whole) * 100
+}
+
+// FormatAge returns a human-readable age string given a posting date and today's date.
+// Both must be in YYYY-MM-DD format. Returns "" if datePosted is empty or unparseable.
+func FormatAge(datePosted, today string) string {
+	if datePosted == "" {
+		return ""
+	}
+	posted, err := time.Parse("2006-01-02", datePosted)
+	if err != nil {
+		return ""
+	}
+	ref, err := time.Parse("2006-01-02", today)
+	if err != nil {
+		return ""
+	}
+	days := int(ref.Sub(posted).Hours() / 24)
+	if days < 0 {
+		return ""
+	}
+	if days <= 1 {
+		return "today"
+	}
+	if days <= 6 {
+		return fmt.Sprintf("%dd", days)
+	}
+	weeks := days / 7
+	if days <= 60 {
+		return fmt.Sprintf("%dw", weeks)
+	}
+	return "60d+"
 }
