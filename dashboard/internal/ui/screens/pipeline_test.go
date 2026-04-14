@@ -70,3 +70,35 @@ func TestWithReloadedDataPreservesStateAndSelection(t *testing.T) {
 		t.Fatal("expected cached report summaries to survive refresh")
 	}
 }
+
+func TestSortAgeOrdersFreshestFirst(t *testing.T) {
+	apps := []model.CareerApplication{
+		{Company: "Old", Role: "Eng", Status: "Evaluated", Score: 4.0, DatePosted: "2026-03-01"},
+		{Company: "Fresh", Role: "Eng", Status: "Evaluated", Score: 3.5, DatePosted: "2026-04-12"},
+		{Company: "NoDate", Role: "Eng", Status: "Evaluated", Score: 4.5, DatePosted: ""},
+	}
+
+	pm := NewPipelineModel(
+		theme.NewTheme("catppuccin-mocha"),
+		apps,
+		model.PipelineMetrics{Total: len(apps)},
+		"..",
+		120, 40,
+	)
+	pm.sortMode = sortAge
+	pm.viewMode = "flat"
+	pm.applyFilterAndSort()
+
+	if len(pm.filtered) != 3 {
+		t.Fatalf("expected 3 filtered, got %d", len(pm.filtered))
+	}
+	if pm.filtered[0].Company != "Fresh" {
+		t.Errorf("expected Fresh first (freshest), got %s", pm.filtered[0].Company)
+	}
+	if pm.filtered[1].Company != "Old" {
+		t.Errorf("expected Old second, got %s", pm.filtered[1].Company)
+	}
+	if pm.filtered[2].Company != "NoDate" {
+		t.Errorf("expected NoDate last (no date sorts to bottom), got %s", pm.filtered[2].Company)
+	}
+}
