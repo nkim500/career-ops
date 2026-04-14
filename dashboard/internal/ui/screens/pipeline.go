@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -61,6 +62,7 @@ const (
 	sortDate    = "date"
 	sortCompany = "company"
 	sortStatus  = "status"
+	sortAge     = "age"
 )
 
 // Filter modes
@@ -87,7 +89,7 @@ var pipelineTabs = []pipelineTab{
 	{filterSkip, "SKIP"},
 }
 
-var sortCycle = []string{sortScore, sortDate, sortCompany, sortStatus}
+var sortCycle = []string{sortScore, sortDate, sortCompany, sortStatus, sortAge}
 
 var statusOptions = []string{"Evaluated", "Applied", "Responded", "Interview", "Offer", "Rejected", "Discarded", "SKIP"}
 
@@ -461,6 +463,21 @@ func (m *PipelineModel) applyFilterAndSort() {
 		sort.SliceStable(filtered, func(i, j int) bool {
 			return data.StatusPriority(filtered[i].Status) < data.StatusPriority(filtered[j].Status)
 		})
+	case sortAge:
+		sort.SliceStable(filtered, func(i, j int) bool {
+			di := filtered[i].DatePosted
+			dj := filtered[j].DatePosted
+			if di == "" && dj == "" {
+				return false
+			}
+			if di == "" {
+				return false
+			}
+			if dj == "" {
+				return true
+			}
+			return di > dj
+		})
 	}
 
 	// In grouped mode, always sort by status priority first, then by selected sort within groups
@@ -479,6 +496,19 @@ func (m *PipelineModel) applyFilterAndSort() {
 				return filtered[i].Date > filtered[j].Date
 			case sortCompany:
 				return strings.ToLower(filtered[i].Company) < strings.ToLower(filtered[j].Company)
+			case sortAge:
+				di := filtered[i].DatePosted
+				dj := filtered[j].DatePosted
+				if di == "" && dj == "" {
+					return false
+				}
+				if di == "" {
+					return false
+				}
+				if dj == "" {
+					return true
+				}
+				return di > dj
 			default:
 				return filtered[i].Score > filtered[j].Score
 			}
@@ -727,8 +757,9 @@ func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool)
 	companyW := 20
 	statusW := 12
 	compW := 14
+	ageW := 7
 	// Role gets remaining space
-	roleW := m.width - scoreW - companyW - statusW - compW - 10
+	roleW := m.width - scoreW - companyW - statusW - compW - ageW - 12
 	if roleW < 15 {
 		roleW = 15
 	}
@@ -759,11 +790,26 @@ func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool)
 		compText = compStyle.Render(comp)
 	}
 
-	line := fmt.Sprintf(" %s %s %s %s %s",
+	// Age column -- fixed column
+	today := time.Now().Format("2006-01-02")
+	ageStyle := lipgloss.NewStyle().Width(ageW)
+	var ageText string
+	if app.DatePosted != "" {
+		ageStr := data.FormatAge(app.DatePosted, today)
+		ageText = m.ageStyle(app.DatePosted, today).Width(ageW).Render(ageStr)
+	} else if app.Date != "" {
+		ageStr := data.FormatAge(app.Date, today)
+		ageText = lipgloss.NewStyle().Foreground(m.theme.Subtext).Width(ageW).Render("~" + ageStr)
+	} else {
+		ageText = ageStyle.Foreground(m.theme.Subtext).Render("—")
+	}
+
+	line := fmt.Sprintf(" %s %s %s %s %s %s",
 		score,
 		companyStyle.Render(company),
 		roleStyle.Render(role),
 		statusText,
+		ageText,
 		compText,
 	)
 
@@ -899,6 +945,26 @@ func (m PipelineModel) scoreStyle(score float64) lipgloss.Style {
 		return lipgloss.NewStyle().Foreground(m.theme.Yellow)
 	case score >= 3.0:
 		return lipgloss.NewStyle().Foreground(m.theme.Text)
+	default:
+		return lipgloss.NewStyle().Foreground(m.theme.Red)
+	}
+}
+
+func (m PipelineModel) ageStyle(datePosted, today string) lipgloss.Style {
+	posted, err := time.Parse("2006-01-02", datePosted)
+	if err != nil {
+		return lipgloss.NewStyle().Foreground(m.theme.Subtext)
+	}
+	ref, err := time.Parse("2006-01-02", today)
+	if err != nil {
+		return lipgloss.NewStyle().Foreground(m.theme.Subtext)
+	}
+	days := int(ref.Sub(posted).Hours() / 24)
+	switch {
+	case days <= 7:
+		return lipgloss.NewStyle().Foreground(m.theme.Green)
+	case days <= 30:
+		return lipgloss.NewStyle().Foreground(m.theme.Yellow)
 	default:
 		return lipgloss.NewStyle().Foreground(m.theme.Red)
 	}

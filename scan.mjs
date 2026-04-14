@@ -81,6 +81,7 @@ function parseGreenhouse(json, companyName) {
     url: j.absolute_url || '',
     company: companyName,
     location: j.location?.name || '',
+    datePosted: (j.first_published || j.updated_at || '').slice(0, 10),
   }));
 }
 
@@ -91,6 +92,7 @@ function parseAshby(json, companyName) {
     url: j.jobUrl || '',
     company: companyName,
     location: j.location || '',
+    datePosted: (j.publishedAt || '').slice(0, 10),
   }));
 }
 
@@ -101,10 +103,26 @@ function parseLever(json, companyName) {
     url: j.hostedUrl || '',
     company: companyName,
     location: j.categories?.location || '',
+    datePosted: j.createdAt ? new Date(j.createdAt).toISOString().slice(0, 10) : '',
   }));
 }
 
 const PARSERS = { greenhouse: parseGreenhouse, ashby: parseAshby, lever: parseLever };
+
+// ── Age formatter ────────────────────────────────────────────────────
+
+function formatAge(datePosted, referenceDate) {
+  if (!datePosted) return '';
+  const posted = new Date(datePosted);
+  const ref = new Date(referenceDate);
+  const days = Math.floor((ref - posted) / (1000 * 60 * 60 * 24));
+  if (days < 0) return '';
+  if (days <= 1) return '📅 today';
+  if (days <= 6) return `📅 ${days}d`;
+  const weeks = Math.floor(days / 7);
+  if (days <= 59) return `📅 ${weeks}w`;
+  return '📅 60d+';
+}
 
 // ── Fetch with timeout ──────────────────────────────────────────────
 
@@ -198,7 +216,7 @@ function appendToPipeline(offers) {
     const procIdx = text.indexOf('## Procesadas');
     const insertAt = procIdx === -1 ? text.length : procIdx;
     const block = `\n${marker}\n\n` + offers.map(o =>
-      `- [ ] ${o.url} | ${o.company} | ${o.title}`
+      `- [ ] ${o.url} | ${o.company} | ${o.title}${o.ageLabel ? ' | ' + o.ageLabel : ''}`
     ).join('\n') + '\n\n';
     text = text.slice(0, insertAt) + block + text.slice(insertAt);
   } else {
@@ -208,7 +226,7 @@ function appendToPipeline(offers) {
     const insertAt = nextSection === -1 ? text.length : nextSection;
 
     const block = '\n' + offers.map(o =>
-      `- [ ] ${o.url} | ${o.company} | ${o.title}`
+      `- [ ] ${o.url} | ${o.company} | ${o.title}${o.ageLabel ? ' | ' + o.ageLabel : ''}`
     ).join('\n') + '\n';
     text = text.slice(0, insertAt) + block + text.slice(insertAt);
   }
@@ -219,11 +237,11 @@ function appendToPipeline(offers) {
 function appendToScanHistory(offers, date) {
   // Ensure file + header exist
   if (!existsSync(SCAN_HISTORY_PATH)) {
-    writeFileSync(SCAN_HISTORY_PATH, 'url\tfirst_seen\tportal\ttitle\tcompany\tstatus\n', 'utf-8');
+    writeFileSync(SCAN_HISTORY_PATH, 'url\tfirst_seen\tportal\ttitle\tcompany\tdate_posted\tstatus\n', 'utf-8');
   }
 
   const lines = offers.map(o =>
-    `${o.url}\t${date}\t${o.source}\t${o.title}\t${o.company}\tadded`
+    `${o.url}\t${date}\t${o.source}\t${o.title}\t${o.company}\t${o.datePosted || ''}\tadded`
   ).join('\n') + '\n';
 
   appendFileSync(SCAN_HISTORY_PATH, lines, 'utf-8');
@@ -322,6 +340,19 @@ async function main() {
 
   await parallelFetch(tasks, CONCURRENCY);
 
+  // Compute age labels for pipeline annotation
+  for (const o of newOffers) {
+    o.ageLabel = formatAge(o.datePosted, date);
+  }
+
+  // Sort new offers by freshness (freshest first)
+  newOffers.sort((a, b) => {
+    if (!a.datePosted && !b.datePosted) return 0;
+    if (!a.datePosted) return 1;
+    if (!b.datePosted) return -1;
+    return b.datePosted.localeCompare(a.datePosted);
+  });
+
   // 5. Write results
   if (!dryRun && newOffers.length > 0) {
     appendToPipeline(newOffers);
@@ -348,7 +379,8 @@ async function main() {
   if (newOffers.length > 0) {
     console.log('\nNew offers:');
     for (const o of newOffers) {
-      console.log(`  + ${o.company} | ${o.title} | ${o.location || 'N/A'}`);
+      const age = o.ageLabel || '';
+      console.log(`  + ${o.company} | ${o.title} | ${o.location || 'N/A'}${age ? ' | ' + age : ''}`);
     }
     if (dryRun) {
       console.log('\n(dry run — run without --dry-run to save results)');
