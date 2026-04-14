@@ -754,12 +754,13 @@ func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool)
 
 	// Column widths
 	scoreW := 5 // "4.5  "
-	companyW := 20
+	dateW := 10
+	companyW := 16
 	statusW := 12
 	compW := 14
 	ageW := 7
 	// Role gets remaining space
-	roleW := m.width - scoreW - companyW - statusW - compW - ageW - 12
+	roleW := m.width - scoreW - dateW - companyW - statusW - compW - ageW - 14
 	if roleW < 15 {
 		roleW = 15
 	}
@@ -771,6 +772,13 @@ func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool)
 	// Company (truncate)
 	company := truncateRunes(app.Company, companyW)
 	companyStyle := lipgloss.NewStyle().Foreground(m.theme.Text).Width(companyW)
+
+	// Date (fixed width)
+	dateText := app.Date
+	if dateText == "" {
+		dateText = "—"
+	}
+	dateStyle := lipgloss.NewStyle().Foreground(m.theme.Subtext).Width(dateW)
 
 	// Role (truncate)
 	role := truncateRunes(app.Role, roleW)
@@ -804,8 +812,10 @@ func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool)
 		ageText = ageStyle.Foreground(m.theme.Subtext).Render("—")
 	}
 
-	line := fmt.Sprintf(" %s %s %s %s %s %s",
+
+	line := fmt.Sprintf(" %s %s %s %s %s %s %s",
 		score,
+		dateStyle.Render(truncateRunes(dateText, dateW)),
 		companyStyle.Render(company),
 		roleStyle.Render(role),
 		statusText,
