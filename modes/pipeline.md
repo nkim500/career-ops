@@ -32,6 +32,16 @@ Processes offer URLs accumulated in `data/pipeline.md`. The user adds URLs whene
 - [x] #144 | https://boards.greenhouse.io/xyz/jobs/012 | BigCo | SA | 2.1/5 | PDF ❌
 ```
 
+## Posting date backfill
+
+During evaluation, if the job's `date_posted` is missing from `scan-history.tsv`:
+
+1. While reading the page snapshot (already happening for JD extraction), look for posting date signals:
+   - Explicit: "Posted on April 10, 2026", "Listed 3 days ago", "Published: 2026-04-10"
+   - Implicit: metadata dates, breadcrumbs, page footer
+2. If found: include `**Posted:** YYYY-MM-DD` in the report header and write the date back to `scan-history.tsv` by finding the matching URL row and filling in the `date_posted` column.
+3. If not found: leave empty. Don't guess. The `first_seen` date serves as a ceiling.
+
 ## Smart JD detection from URL
 
 1. **Playwright (preferred):** `browser_navigate` + `browser_snapshot`. Works with all SPAs.

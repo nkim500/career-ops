@@ -108,6 +108,7 @@ Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 **Archetype:** {detected}
 **Score:** {X/5}
 **URL:** {job posting URL}
+**Posted:** {YYYY-MM-DD or "unknown"}
 **PDF:** {path or pending}
 
 ---

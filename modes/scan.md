@@ -172,12 +172,23 @@ If a non-publicly-accessible URL is found:
 `data/scan-history.tsv` tracks ALL seen URLs:
 
 ```
-url	first_seen	portal	title	company	status
-https://...	2026-02-10	Ashby — AI PM	PM AI	Acme	added
-https://...	2026-02-10	Greenhouse — SA	Junior Dev	BigCo	skipped_title
-https://...	2026-02-10	Ashby — AI PM	SA AI	OldCo	skipped_dup
-https://...	2026-02-10	WebSearch — AI PM	PM AI	ClosedCo	skipped_expired
+url	first_seen	portal	title	company	date_posted	status
+https://...	2026-02-10	Ashby — AI PM	PM AI	Acme	2026-02-08	added
+https://...	2026-02-10	Greenhouse — SA	Junior Dev	BigCo		skipped_title
+https://...	2026-02-10	Ashby — AI PM	SA AI	OldCo		skipped_dup
+https://...	2026-02-10	WebSearch — AI PM	PM AI	ClosedCo		skipped_expired
 ```
+
+### Posting date extraction
+
+The scanner extracts `date_posted` from ATS API responses when available:
+- **Greenhouse:** `first_published` field (falls back to `updated_at`)
+- **Ashby:** `publishedAt` field
+- **Lever:** `createdAt` field (Unix ms → ISO date)
+
+Pipeline entries are annotated with age (e.g., `📅 3d`) and sorted freshest-first within each scan batch.
+
+If the API doesn't return a posting date, the field is left empty. The LLM can backfill it during evaluation (see pipeline mode).
 
 ## Output summary
 
