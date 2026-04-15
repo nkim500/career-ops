@@ -2,6 +2,7 @@
 cv.md
 article-digest.md
 interview-prep/*.md
+interview-prep/*/
 !interview-prep/.gitkeep
 data/applications.md
 data/pipeline.md
