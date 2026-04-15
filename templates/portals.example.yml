@@ -15,6 +15,36 @@
 #   4. Adjust search_queries for your preferred job boards
 #   5. Set enabled: false on companies you don't care about
 
+# -- Location filter (OPTIONAL) --
+# Applied AFTER the title filter. Semantics (all case-insensitive):
+#   1. blank/missing location → pass (don't silently drop on missing data)
+#   2. matches any `deny` substring → fail (deny wins over allow)
+#   3. matches any `allow` substring → pass
+#   4. `allow` non-empty but no match → fail (strict allow-list)
+#   5. `allow` empty → pass unless denied (deny-only mode)
+#
+# Multi-city listings pass if ANY sub-location matches allow
+# (e.g. "Hybrid - San Francisco, New York City" passes on the SF half).
+#
+# If you omit `location_filter` entirely, no location filtering is
+# applied — all jobs past the title filter are kept.
+
+# location_filter:
+#   allow:
+#     - "San Francisco"
+#     - "Mountain View"
+#     - "Palo Alto"
+#     - "Bay Area"
+#     - "Remote - United States"
+#     - "Remote, USA"
+#     - "United States"
+#   deny:
+#     - "London"
+#     - "Paris"
+#     - "Bangalore"
+#     - "India"
+#     - "EMEA"
+
 # -- Title filter --
 # The scanner uses these keywords to decide if a title is relevant.
 # At least 1 positive must match AND 0 negatives must match (case-insensitive).
