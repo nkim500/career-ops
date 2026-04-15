@@ -126,4 +126,4 @@ Note: `main` branch is **not protected** yet, so these checks don't yet *block* 
    - **Local features** stay unless explicitly superseded; compare-and-choose on duplicates.
 5. Run `node test-all.mjs` and `cd dashboard && go build ./...` before showing the diff.
 6. Append a new entry to the **Upstream Sync Decision Log** above.
-7. Fast-forward `main` to the sync branch and push.
+7. Push the sync branch and create a PR (`gh pr create --repo nkim500/career-ops`). Merge via GitHub (branch protection requires CI to pass). Then pull main locally.

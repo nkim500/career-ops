@@ -79,15 +79,18 @@ if git merge --no-ff --no-edit FETCH_HEAD; then
 
 ==> Merge clean on '$SYNC_BRANCH'.
 
-Next steps (review, then integrate into main):
+Next steps (review, then create a PR):
   # inspect what changed
   git log --oneline main..$SYNC_BRANCH
   git diff main..$SYNC_BRANCH
 
-  # when happy, fast-forward main and push
+  # when happy, push the sync branch and create a PR
+  git push origin $SYNC_BRANCH
+  gh pr create --repo nkim500/career-ops --base main --head $SYNC_BRANCH --title "sync: upstream santifer/career-ops $(date +%Y-%m-%d)"
+
+  # after PR is merged on GitHub, clean up locally
   git switch main
-  git merge --ff-only $SYNC_BRANCH
-  git push origin main
+  git pull --ff-only origin main
   git branch -d $SYNC_BRANCH
 EOF
   exit 0
@@ -99,7 +102,15 @@ else
 Resolve them in place, then:
   git add <resolved files>
   git commit
-  # followed by the same fast-forward steps into main
+
+  # push the sync branch and create a PR
+  git push origin $SYNC_BRANCH
+  gh pr create --repo nkim500/career-ops --base main --head $SYNC_BRANCH --title "sync: upstream santifer/career-ops $(date +%Y-%m-%d)"
+
+  # after PR is merged on GitHub, clean up locally
+  git switch main
+  git pull --ff-only origin main
+  git branch -d $SYNC_BRANCH
 
 To abort and try again later:
   git merge --abort
