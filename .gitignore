@@ -28,6 +28,10 @@ modes/_profile.md
 .update-dismissed
 .update-lock
 
+# Local-only extensions (user-layer scripts, filters, fixtures)
+scripts/local/
+*-local.mjs
+
 # Generated
 .resolved-prompt-*
 node_modules/
