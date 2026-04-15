@@ -69,6 +69,11 @@ export function detectApi(company) {
     };
   }
 
+  // YC Work at a Startup (HTML-embedded Inertia.js payload)
+  if (/workatastartup\.com\/jobs(?:\/l\/[^?#]+)?/.test(url)) {
+    return { type: 'yc', url };
+  }
+
   return null;
 }
 
@@ -107,7 +112,65 @@ function parseLever(json, companyName) {
   }));
 }
 
-export const PARSERS = { greenhouse: parseGreenhouse, ashby: parseAshby, lever: parseLever };
+// YC Work at a Startup: pages under workatastartup.com/jobs/l/{role} are
+// Inertia.js server-rendered HTML. The full props payload lives in a
+// `data-page="..."` attribute with HTML-entity-encoded JSON. We extract
+// it, decode, parse, and map the jobs array.
+//
+// Notes:
+//   - The companyName argument is ignored — each job has its own real
+//     `companyName` that we use (so a single YC "source" can represent
+//     many distinct hiring companies).
+//   - `applyUrl` is an OAuth redirect through account.ycombinator.com —
+//     we prefer the public `/jobs/{id}` canonical URL for dedup stability.
+//   - `companyLastActiveAt` is a relative string ("9 days ago"); we
+//     translate it to a best-effort absolute ISO date so age labels work.
+
+function parseYCLastActive(relativeStr, now = new Date()) {
+  if (!relativeStr) return '';
+  const m = relativeStr.match(/(\d+)\s+(day|week|month|year)s?\s+ago/i);
+  if (!m) return '';
+  const n = parseInt(m[1], 10);
+  const unit = m[2].toLowerCase();
+  const days = unit === 'day' ? n
+    : unit === 'week' ? n * 7
+    : unit === 'month' ? n * 30
+    : n * 365;
+  const d = new Date(now);
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+function parseYC(html, _companyName) {
+  const m = html.match(/data-page="([^"]+)"/);
+  if (!m) return [];
+  // HTML entity decode (only the entities Inertia actually emits)
+  const decoded = m[1]
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+  let data;
+  try {
+    data = JSON.parse(decoded);
+  } catch {
+    return [];
+  }
+  const jobs = data?.props?.jobs || [];
+  if (!Array.isArray(jobs)) return [];
+  return jobs.map(j => ({
+    title: j.title || '',
+    url: j.id ? `https://www.workatastartup.com/jobs/${j.id}` : (j.applyUrl || ''),
+    company: j.companyName || '',
+    location: j.location || '',
+    datePosted: parseYCLastActive(j.companyLastActiveAt),
+  }));
+}
+
+export { parseYC, parseYCLastActive };
+
+export const PARSERS = { greenhouse: parseGreenhouse, ashby: parseAshby, lever: parseLever, yc: parseYC };
 
 // ── Age formatter ────────────────────────────────────────────────────
 
@@ -133,6 +196,21 @@ export async function fetchJson(url) {
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function fetchText(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'career-ops-scanner/1.0' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
   } finally {
     clearTimeout(timer);
   }
@@ -334,8 +412,9 @@ async function main() {
   const tasks = targets.map(company => async () => {
     const { type, url } = company._api;
     try {
-      const json = await fetchJson(url);
-      const jobs = PARSERS[type](json, company.name);
+      // YC parses HTML-embedded Inertia.js payload; all other ATS types return JSON.
+      const payload = type === 'yc' ? await fetchText(url) : await fetchJson(url);
+      const jobs = PARSERS[type](payload, company.name);
       totalFound += jobs.length;
 
       for (const job of jobs) {

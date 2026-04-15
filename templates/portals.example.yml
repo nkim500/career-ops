@@ -307,8 +307,28 @@ search_queries:
 # Companies whose career pages are checked directly.
 # scan_method: playwright (default), websearch, greenhouse_api
 # For Greenhouse companies, add api: field for faster structured JSON access.
+#
+# Supported ATS providers (auto-detected from careers_url):
+#   - Greenhouse      jobs.greenhouse.io / job-boards.greenhouse.io / job-boards.eu.greenhouse.io
+#   - Ashby           jobs.ashbyhq.com/{slug}
+#   - Lever           jobs.lever.co/{slug}
+#   - YC Work at a    workatastartup.com/jobs (or /jobs/l/{role})
+#     Startup         — each entry represents one role-category page and
+#                       returns the ~29 newest jobs across ALL YC companies
+#                       in that category. Each extracted job carries its
+#                       own real companyName, not the pseudo-company name.
 
 tracked_companies:
+
+  # -- YC / Work at a Startup (single feed, per role category) --
+  # Uncomment to scan YC's newest listings. companyName comes from
+  # each individual job, not this entry.
+  # - name: YC — Engineering (Work at a Startup)
+  #   careers_url: https://www.workatastartup.com/jobs/l/software-engineer
+  #   enabled: true
+  # - name: YC — Product (Work at a Startup)
+  #   careers_url: https://www.workatastartup.com/jobs/l/product-manager
+  #   enabled: true
 
   # -- AI Labs & LLM providers --
 

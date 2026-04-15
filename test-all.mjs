@@ -399,6 +399,22 @@ try {
   fail(`scan filter test crashed: ${e.message}`);
 }
 
+// ── 14. YC (Work at a Startup) PARSER UNIT TESTS ────────────────────────────
+
+console.log('\n14. scan.mjs YC parser unit tests');
+
+try {
+  const ycTestResult = run('node', ['scripts/test-scan-yc.mjs']);
+  if (ycTestResult !== null && /0 failed/.test(ycTestResult)) {
+    const match = ycTestResult.match(/(\d+) passed, 0 failed/);
+    pass(`YC parser tests — ${match ? match[1] : '?'} assertions passed`);
+  } else {
+    fail('scripts/test-scan-yc.mjs reported failures or crashed');
+  }
+} catch (e) {
+  fail(`YC parser test crashed: ${e.message}`);
+}
+
 // ── SUMMARY ─────────────────────────────────────────────────────
 
 console.log('\n' + '='.repeat(50));
