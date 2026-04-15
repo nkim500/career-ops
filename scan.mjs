@@ -34,7 +34,7 @@ const FETCH_TIMEOUT_MS = 10_000;
 
 // ── API detection ───────────────────────────────────────────────────
 
-function detectApi(company) {
+export function detectApi(company) {
   // Greenhouse: explicit api field
   if (company.api && company.api.includes('greenhouse')) {
     return { type: 'greenhouse', url: company.api };
@@ -107,7 +107,7 @@ function parseLever(json, companyName) {
   }));
 }
 
-const PARSERS = { greenhouse: parseGreenhouse, ashby: parseAshby, lever: parseLever };
+export const PARSERS = { greenhouse: parseGreenhouse, ashby: parseAshby, lever: parseLever };
 
 // ── Age formatter ────────────────────────────────────────────────────
 
@@ -126,7 +126,7 @@ function formatAge(datePosted, referenceDate) {
 
 // ── Fetch with timeout ──────────────────────────────────────────────
 
-async function fetchJson(url) {
+export async function fetchJson(url) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
