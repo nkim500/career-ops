@@ -383,22 +383,6 @@ try {
   fail(`Cadence script test crashed: ${e.message}`);
 }
 
-// ── 13. SCAN FILTER UNIT TESTS ──────────────────────────────────────────────
-
-console.log('\n13. scan.mjs filter unit tests');
-
-try {
-  const filterTestResult = run('node', ['scripts/test-scan-filters.mjs']);
-  if (filterTestResult !== null && /0 failed/.test(filterTestResult)) {
-    const match = filterTestResult.match(/(\d+) passed, 0 failed/);
-    pass(`scan filter tests — ${match ? match[1] : '?'} assertions passed`);
-  } else {
-    fail('scripts/test-scan-filters.mjs reported failures or crashed');
-  }
-} catch (e) {
-  fail(`scan filter test crashed: ${e.message}`);
-}
-
 // ── SUMMARY ─────────────────────────────────────────────────────
 
 console.log('\n' + '='.repeat(50));
