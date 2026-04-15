@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.0](https://github.com/nkim500/career-ops/compare/v1.5.0...v1.6.0) (2026-04-15)
+
+
+### Features
+
+* **scan:** add location_filter to portals.yml schema ([707e3f2](https://github.com/nkim500/career-ops/commit/707e3f25adb0df642f44b9efec1b471314f54812))
+
+
+### Reverts
+
+* scan location_filter (moving to user layer) ([4023e3b](https://github.com/nkim500/career-ops/commit/4023e3b89933126f1cb5f9a50c314e22beab205a))
+
 ## [1.5.0](https://github.com/nkim500/career-ops/compare/v1.4.0...v1.5.0) (2026-04-14)
 
 
