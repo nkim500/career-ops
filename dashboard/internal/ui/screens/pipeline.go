@@ -567,6 +567,7 @@ func (m PipelineModel) View() string {
 	tabs := m.renderTabs()
 	metricsBar := m.renderMetrics()
 	sortBar := m.renderSortBar()
+	columnHeaders := m.renderColumnHeaders()
 	body := m.renderBody()
 	preview := m.renderPreview()
 	help := m.renderHelp()
@@ -579,7 +580,7 @@ func (m PipelineModel) View() string {
 
 	// Calculate available height for body
 	previewLines := strings.Count(preview, "\n") + 1
-	availHeight := m.height - 7 - previewLines // header + tabs(2) + metrics + sortbar + help + preview
+	availHeight := m.height - 8 - previewLines // header + tabs(2) + metrics + sortbar + colheader + help + preview
 	if availHeight < 3 {
 		availHeight = 3
 	}
@@ -598,9 +599,39 @@ func (m PipelineModel) View() string {
 		tabs,
 		metricsBar,
 		sortBar,
+		columnHeaders,
 		body,
 		preview,
 		help,
+	)
+}
+
+// renderColumnHeaders renders the labels above the data rows.
+// Widths must match those in renderRow().
+func (m PipelineModel) renderColumnHeaders() string {
+	scoreW := 5
+	dateW := 10
+	companyW := 16
+	statusW := 12
+	compW := 14
+	ageW := 7
+	roleW := m.width - scoreW - dateW - companyW - statusW - compW - ageW - 14
+	if roleW < 15 {
+		roleW = 15
+	}
+
+	headerStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(m.theme.Subtext)
+
+	return fmt.Sprintf(" %s %s %s %s %s %s %s",
+		headerStyle.Width(scoreW).Render("SCORE"),
+		headerStyle.Width(dateW).Render("EVAL DATE"),
+		headerStyle.Width(companyW).Render("COMPANY"),
+		headerStyle.Width(roleW).Render("ROLE"),
+		headerStyle.Width(statusW).Render("STATUS"),
+		headerStyle.Width(ageW).Render("AGE"),
+		headerStyle.Width(compW).Render("COMP"),
 	)
 }
 
