@@ -110,7 +110,7 @@ One entry per sync with santifer. Record what was accepted, what was skipped, wh
 - **`dashboard/internal/ui/screens/pipeline.go`** — three independent changes touched the same row-rendering function: upstream's NUM column (`8d289c6`), upstream's "show dates in pipeline list" effect on DATE (`e5e2a6c`), and the local column-headers row from PR #18. Final layout: `# | SCORE | EVAL DATE | COMPANY | ROLE | STATUS | AGE | COMP` (8 columns). Updated `renderColumnHeaders`, `renderRow`, and `roleW` formulas. Build + tests pass.
 
 **Skipped**:
-- `.opencode/commands/career-ops-*.md` (13 files) — upstream removed all OpenCode integration. User confirmed they don't use OpenCode → accepted the upstream removal. Also dropped the OpenCode Commands table from AGENTS.md to keep docs and on-disk state consistent.
+- `.opencode/commands/career-ops-*.md` (13 files) — upstream removed all OpenCode integration; this fork is not standardized on OpenCode, so the deletion was accepted. Also dropped the OpenCode Commands table from AGENTS.md to keep docs and on-disk state consistent.
 
 **Verification**:
 - `node test-all.mjs` → 69 passed, 0 failed, 24 warnings (warnings are missing personal-data files, expected)
