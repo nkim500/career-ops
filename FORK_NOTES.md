@@ -74,6 +74,49 @@ One entry per sync with santifer. Record what was accepted, what was skipped, wh
 
 <!-- next sync entry goes here -->
 
+### 2026-05-09 — santifer v1.7.0 multi-CLI + LaTeX + dashboard sync
+
+**Sync branch**: `sync/upstream-2026-05-09`
+**Upstream tip**: `8e554cc fix(release): sync VERSION file to 1.7.0` (release 1.7.0)
+**Commits integrated**: 43
+
+**Taken as-is (additive, no conflict)**:
+- Multi-CLI restructure: `.agents/skills/career-ops/SKILL.md` (canonical), `.claude-plugin/marketplace.json`, `.claude-plugin/plugin.json`, `.qwen/skills/...`
+- LaTeX support: `templates/cv-template.tex`, `generate-latex.mjs`, `modes/latex.md`
+- `merge-tracker.mjs` fuzzy-match fix (`7821113` — filter seniority + location stopwords + require overlap ratio in `roleFuzzyMatch`). Directly addresses a false-dedup bug observed locally where the existing matcher collapsed distinct roles at the same company and overwrote unrelated tracker rows on `num` collisions.
+- Liveness: applications-closed banner detection (`7f8217e`)
+- `portals.example.yml`: Canada/Vancouver + automation companies (`590ba6e`)
+- `update-system.mjs`: cross-check GitHub Releases when VERSION stale; expanded `SYSTEM_PATHS`
+- `writing-samples/` folder + README (voice-calibration corpus area, gitignored content)
+- `{{PHONE}}` placeholder in CV template
+- Dependency bumps: codeql v4, labeler v6, first-interaction v3, setup-node v6
+- `CHANGELOG.md` taken wholesale; release-please will derive future fork entries
+
+**Conflict resolutions**:
+- **`.gitignore`** — kept fork's `article-digest.md`, `interview-prep/*`, `scripts/local/`, `*-local.mjs`, `.claude/*`, `*.bak`. Adopted upstream's `.env`. Added `!.claude/skills` negation so the new `SKILL.md` symlink stays tracked.
+- **`.release-please-manifest.json`** → upstream's `1.7.0`.
+- **`CLAUDE.md`** → upstream's thin `@AGENTS.md` import (canonical doc moved to AGENTS.md per multi-CLI standard).
+- **`AGENTS.md`** — adopted upstream content with fork patches:
+  - Added "Fork Notes (READ BEFORE UPSTREAM SYNCS)" section after Origin
+  - Replaced Spanish mode references (`oferta.md`, `oferta`, `ofertas`, `contacto`) → English (`offer.md`, `offer`, `offers`, `contact`) per fork invariant 1
+  - Added `debrief` and `followup add/list/done` rows in Skill Modes table
+  - Added `interview-prep/{company}-{role}/rounds/` and `/debriefs/` rows to Main Files
+- **`.claude/skills/career-ops/SKILL.md`** — distinct-types resolved: now a symlink to `../../../.agents/skills/career-ops/SKILL.md`. Patched canonical `.agents/.../SKILL.md` to use English mode names + discovery menu. Dropped `~HEAD` backup file.
+- **`modes/apply.md`, `modes/batch.md`** → HEAD wholesale (fork's English already good; upstream conflicts were pure stylistic English drift, no substantive content changes).
+- **`modes/auto-pipeline.md`** — adopted upstream's LaTeX-aware Step 3 (routes via `cv.output_format`); translated `Paso`/`Generar` → English.
+- **`modes/scan.md`** — translated upstream's two new Spanish content blocks to English: (1) v1.5+ note clarifying `scan.mjs` is API-only and Playwright/WebSearch is the agent flow; (2) RULE: prefer corporate careers URL over direct ATS endpoint (with Mastercard / OpenAI / Stripe examples).
+- **`modes/pt/pipeline.md`** → upstream wholesale (PT not customized).
+- **`dashboard/internal/data/career_test.go`** (add/add) — kept both `TestFormatAge` (HEAD) and `TestParseApplicationsUsesTrackerNumberColumn` (upstream); merged the imports list.
+- **`dashboard/internal/ui/screens/pipeline.go`** — three independent changes touched the same row-rendering function: upstream's NUM column (`8d289c6`), upstream's "show dates in pipeline list" effect on DATE (`e5e2a6c`), and the local column-headers row from PR #18. Final layout: `# | SCORE | EVAL DATE | COMPANY | ROLE | STATUS | AGE | COMP` (8 columns). Updated `renderColumnHeaders`, `renderRow`, and `roleW` formulas. Build + tests pass.
+
+**Skipped**:
+- `.opencode/commands/career-ops-*.md` (13 files) — upstream removed all OpenCode integration; this fork is not standardized on OpenCode, so the deletion was accepted. Also dropped the OpenCode Commands table from AGENTS.md to keep docs and on-disk state consistent.
+
+**Verification**:
+- `node test-all.mjs` → 69 passed, 0 failed, 24 warnings (warnings are missing personal-data files, expected)
+- `go test -C dashboard ./...` → all packages pass
+- `go build -C dashboard .` → clean
+
 ### 2026-04-13 — santifer v1.4.0 security/CI hardening sync
 
 **Sync branch**: `sync/upstream-2026-04-13`
