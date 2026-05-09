@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.6.0](https://github.com/nkim500/career-ops/compare/v1.5.0...v1.6.0) (2026-05-09)
+
+
+### Features
+
+* **dashboard:** add column headers row to pipeline view ([b800977](https://github.com/nkim500/career-ops/commit/b800977b754a792b567bcd5b5863eb434a08cbc0))
+* **dashboard:** add column headers row to pipeline view ([385a20a](https://github.com/nkim500/career-ops/commit/385a20a4157d5cd0c1317f409016976b9ed35865))
+* **scan:** add location_filter to portals.yml schema ([707e3f2](https://github.com/nkim500/career-ops/commit/707e3f25adb0df642f44b9efec1b471314f54812))
+
+
+### Reverts
+
+* scan location_filter (moving to user layer) ([4023e3b](https://github.com/nkim500/career-ops/commit/4023e3b89933126f1cb5f9a50c314e22beab205a))
+
 ## [1.5.0](https://github.com/nkim500/career-ops/compare/v1.4.0...v1.5.0) (2026-04-14)
 
 
