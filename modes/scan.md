@@ -2,6 +2,8 @@
 
 Scans configured job portals, filters by title relevance, and adds new offers to the pipeline for later evaluation.
 
+> **Note (v1.5+):** The default scanner (`scan.mjs` / `npm run scan`) is **zero-token** and only queries the public Greenhouse, Ashby, and Lever APIs directly. The Playwright/WebSearch levels described below are the **agent** flow (run by Claude/Codex), not what `scan.mjs` does. If a company has no Greenhouse/Ashby/Lever API, `scan.mjs` skips it; for those cases, the agent must manually run Level 1 (Playwright) or Level 3 (WebSearch).
+
 ## Recommended execution
 
 Run as a subagent to avoid consuming main context:
@@ -211,6 +213,18 @@ New added to pipeline.md: N
 ## Managing careers_url
 
 Each company in `tracked_companies` must have `careers_url` — the direct URL to their job listings page. This avoids searching for it every time.
+
+**RULE: Always use the company's corporate careers URL; fall back to the ATS endpoint only if no corporate page exists.**
+
+The `careers_url` should point to the company's own jobs page whenever available. Many companies use Workday, Greenhouse, or Lever underneath but only expose the canonical job IDs through their corporate domain. Using the direct ATS URL when a corporate page exists can cause false 410 errors because the job IDs don't match.
+
+| ✅ Correct (corporate) | ❌ Wrong as first choice (direct ATS) |
+|---|---|
+| `https://careers.mastercard.com` | `https://mastercard.wd1.myworkdayjobs.com` |
+| `https://openai.com/careers` | `https://job-boards.greenhouse.io/openai` |
+| `https://stripe.com/jobs` | `https://jobs.lever.co/stripe` |
+
+Fallback: if you only have the direct ATS URL, first navigate to the company's website and locate its corporate careers page. Use the direct ATS URL only when the company has no corporate careers page.
 
 **Known patterns by platform:**
 - **Ashby:** `https://jobs.ashbyhq.com/{slug}`

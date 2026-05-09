@@ -72,6 +72,8 @@ const (
 	filterApplied   = "applied"
 	filterInterview = "interview"
 	filterSkip      = "skip"
+	filterRejected  = "rejected"
+	filterDiscarded = "discarded"
 	filterTop       = "top"
 )
 
@@ -87,6 +89,8 @@ var pipelineTabs = []pipelineTab{
 	{filterInterview, "INTERVIEW"},
 	{filterTop, "TOP ≥4"},
 	{filterSkip, "SKIP"},
+	{filterRejected, "REJECTED"},
+	{filterDiscarded, "DISCARDED"},
 }
 
 var sortCycle = []string{sortScore, sortDate, sortCompany, sortStatus, sortAge}
@@ -609,13 +613,14 @@ func (m PipelineModel) View() string {
 // renderColumnHeaders renders the labels above the data rows.
 // Widths must match those in renderRow().
 func (m PipelineModel) renderColumnHeaders() string {
+	numW := 5
 	scoreW := 5
 	dateW := 10
 	companyW := 16
 	statusW := 12
 	compW := 14
 	ageW := 7
-	roleW := m.width - scoreW - dateW - companyW - statusW - compW - ageW - 14
+	roleW := m.width - numW - scoreW - dateW - companyW - statusW - compW - ageW - 16
 	if roleW < 15 {
 		roleW = 15
 	}
@@ -624,7 +629,8 @@ func (m PipelineModel) renderColumnHeaders() string {
 		Bold(true).
 		Foreground(m.theme.Subtext)
 
-	return fmt.Sprintf(" %s %s %s %s %s %s %s",
+	return fmt.Sprintf(" %s %s %s %s %s %s %s %s",
+		headerStyle.Width(numW).Render("#"),
 		headerStyle.Width(scoreW).Render("SCORE"),
 		headerStyle.Width(dateW).Render("EVAL DATE"),
 		headerStyle.Width(companyW).Render("COMPANY"),
@@ -784,6 +790,7 @@ func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool)
 	padStyle := lipgloss.NewStyle().Padding(0, 2)
 
 	// Column widths
+	numW := 5   // "#123 "
 	scoreW := 5 // "4.5  "
 	dateW := 10
 	companyW := 16
@@ -791,10 +798,17 @@ func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool)
 	compW := 14
 	ageW := 7
 	// Role gets remaining space
-	roleW := m.width - scoreW - dateW - companyW - statusW - compW - ageW - 14
+	roleW := m.width - numW - scoreW - dateW - companyW - statusW - compW - ageW - 16
 	if roleW < 15 {
 		roleW = 15
 	}
+
+	// Tracker number (fixed width)
+	numText := "#—"
+	if app.Number > 0 {
+		numText = fmt.Sprintf("#%d", app.Number)
+	}
+	numStyle := lipgloss.NewStyle().Foreground(m.theme.Blue).Bold(true).Width(numW)
 
 	// Score with color
 	scoreStyle := m.scoreStyle(app.Score)
@@ -843,8 +857,8 @@ func (m PipelineModel) renderAppLine(app model.CareerApplication, selected bool)
 		ageText = ageStyle.Foreground(m.theme.Subtext).Render("—")
 	}
 
-
-	line := fmt.Sprintf(" %s %s %s %s %s %s %s",
+	line := fmt.Sprintf(" %s %s %s %s %s %s %s %s",
+		numStyle.Render(truncateRunes(numText, numW)),
 		score,
 		dateStyle.Render(truncateRunes(dateText, dateW)),
 		companyStyle.Render(company),
