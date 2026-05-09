@@ -83,7 +83,7 @@ One entry per sync with santifer. Record what was accepted, what was skipped, wh
 **Taken as-is (additive, no conflict)**:
 - Multi-CLI restructure: `.agents/skills/career-ops/SKILL.md` (canonical), `.claude-plugin/marketplace.json`, `.claude-plugin/plugin.json`, `.qwen/skills/...`
 - LaTeX support: `templates/cv-template.tex`, `generate-latex.mjs`, `modes/latex.md`
-- `merge-tracker.mjs` fuzzy-match fix (`7821113` — filter seniority + location stopwords + require overlap ratio in `roleFuzzyMatch`). Directly addresses the false-dedup bug we hand-fixed today (#630 NVIDIA System SWE vs Solutions Architect, #633 Arize AI overwritten by Harvey ML).
+- `merge-tracker.mjs` fuzzy-match fix (`7821113` — filter seniority + location stopwords + require overlap ratio in `roleFuzzyMatch`). Directly addresses a false-dedup bug observed locally where the existing matcher collapsed distinct roles at the same company and overwrote unrelated tracker rows on `num` collisions.
 - Liveness: applications-closed banner detection (`7f8217e`)
 - `portals.example.yml`: Canada/Vancouver + automation companies (`590ba6e`)
 - `update-system.mjs`: cross-check GitHub Releases when VERSION stale; expanded `SYSTEM_PATHS`
