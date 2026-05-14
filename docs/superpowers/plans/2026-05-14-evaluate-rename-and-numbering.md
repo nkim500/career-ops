@@ -528,7 +528,7 @@ The A-G rubric is currently triplicated. Canonical sources after this task:
 
 `modes/evaluate.md` (the renamed `offer.md`) carries pre-Block-G wording that contradicts the canonical `modes/_shared.md` and the real reports. Fix three spots:
 
-1. Line ~3: `When the candidate pastes a job offer (text or URL), ALWAYS deliver all 6 blocks:` → `When the candidate pastes a job posting (text or URL), ALWAYS deliver all 7 blocks (A-G):`
+1. Line ~3 (`ALWAYS deliver all N blocks:`) — the block count was already corrected to `all 7 blocks (A-G)` during Task 3's review fixes. No change needed here. The phrase still reads "job offer", which is intentional vocabulary per Task 3 — leave it.
 2. In the Post-evaluation report-format block, the line `## G) Draft Application Answers` and its `(only if score >= 4.5 ...)` description → replace with:
    ```
    ## G) Posting Legitimacy
