@@ -538,6 +538,7 @@ The A-G rubric is currently triplicated. Canonical sources after this task:
 **Files:**
 - Modify: `batch/batch-prompt-eval-only.md` (replace duplicated rubric with references)
 - Modify: `batch/batch-prompt.md` (replace duplicated rubric with references)
+- Modify: `batch/post-worker.mjs` (TSV-synthesizer fallback — use the orchestrator-reserved report number instead of recomputing from `applications.md`)
 
 - [ ] **Step 1: Correct the stale Block G and block count in `modes/evaluate.md`**
 
@@ -674,7 +675,20 @@ Replace the ENTIRE contents of `batch/batch-prompt.md` with the same wrapper as 
 - In the Tracker TSV step, the `pdf` column is `✅` (a PDF was generated) and the report header `**PDF:**` line points at the generated PDF path instead of `❌`.
 - The `num` column rule is identical: use `{{REPORT_NUM}}`, never recompute from `applications.md`.
 
-- [ ] **Step 4: Verify the duplicated rubric is gone and references are present**
+- [ ] **Step 4: Fix `batch/post-worker.mjs` to use the reserved report number**
+
+`batch/post-worker.mjs` is the fallback that synthesizes `batch/tracker-additions/{id}.tsv` when a batch worker skipped writing it. It receives `reportNum` as `process.argv[3]` (the orchestrator-reserved number) and already uses it for the report link — but it ALSO computes a separate `nextNum` by reading `data/applications.md` (and pending tracker-additions) and uses that wrong number for the TSV's first column. This is the same bug the batch-prompt rewrite removes.
+
+Make these changes in `batch/post-worker.mjs`:
+
+1. Delete the entire `// Compute next_num by reading applications.md ...` block — the `let nextNum = 1; try { ... } catch { ... }` block (it reads `applicationsPath` and scans `batch/tracker-additions/`).
+2. Replace it with a single line: `const nextNum = reportNum;` (with a brief comment: `// The orchestrator already reserved this number — reuse it, never recompute.`)
+3. Remove the now-unused `applicationsPath` declaration (the `const applicationsPath = path.join(PROJECT_DIR, "data", "applications.md");` line).
+4. Update the file's header comment (line ~7) from `// Reads: reports/{report_num}-*-{date}.md  and  data/applications.md` to `// Reads: reports/{report_num}-*-{date}.md`.
+
+Everything else in the file (the TSV assembly, the report-link construction, the existing-TSV early-exit) stays unchanged. The result: `nextNum` and the `[reportNum]` link are now the same value, both sourced from the orchestrator.
+
+- [ ] **Step 5: Verify the duplicated rubric is gone and references are present**
 
 Run: `grep -cE '^#### Block [A-G]|^### Block [A-G]' batch/batch-prompt.md batch/batch-prompt-eval-only.md`
 Expected: `0` for both (block walkthroughs no longer inlined).
@@ -682,15 +696,18 @@ Expected: `0` for both (block walkthroughs no longer inlined).
 Run: `grep -l 'modes/evaluate.md' batch/batch-prompt.md batch/batch-prompt-eval-only.md`
 Expected: both files listed.
 
-Run: `grep -n 'applications.md' batch/batch-prompt.md batch/batch-prompt-eval-only.md`
-Expected: no output, OR only the explicit "Do NOT recompute it from data/applications.md" line — confirm no instruction still tells the worker to READ applications.md for the number.
+Run: `grep -n 'applications.md' batch/batch-prompt.md batch/batch-prompt-eval-only.md batch/post-worker.mjs`
+Expected: no output, OR only an explicit "do NOT recompute from data/applications.md"-style comment — confirm nothing still READS `applications.md` to derive the number.
 
-- [ ] **Step 5: Commit**
+Run: `node -c batch/post-worker.mjs`
+Expected: no syntax error (silent, exit 0).
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add batch/batch-prompt.md batch/batch-prompt-eval-only.md
+git add batch/batch-prompt.md batch/batch-prompt-eval-only.md batch/post-worker.mjs
 git commit -m "$(cat <<'EOF'
-refactor(batch): thin batch prompts to wrappers over canonical rubric
+refactor(batch): thin batch prompts + fix post-worker numbering
 
 The A-G rubric was triplicated across offer.md and the two batch
 prompts and drifting independently — that drift is what let the
@@ -698,7 +715,9 @@ eval-only worker compute the tracker number from applications.md.
 Batch prompts now read modes/_shared.md + modes/evaluate.md for the
 rubric and keep only batch-specific steps (placeholders, report path,
 TSV, JSON, PDF). The TSV num column uses the orchestrator-reserved
-{{REPORT_NUM}}.
+{{REPORT_NUM}}. post-worker.mjs (the TSV-synthesizer fallback) now
+reuses the reserved reportNum instead of recomputing from
+applications.md.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
