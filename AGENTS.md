@@ -286,7 +286,7 @@ When spawning headless workers for batch processing, use the appropriate command
 - Output in `output/` (gitignored), Reports in `reports/`
 - JDs in `jds/` (referenced as `local:jds/{file}` in pipeline.md)
 - Batch in `batch/` (gitignored except scripts and prompt)
-- Report numbering: sequential 3-digit zero-padded, max existing + 1
+- Report numbering: get the next number from `node scripts/local/next-num.mjs` (single source of truth — max in `reports/` + `batch/batch-state.tsv`, +1). NEVER derive it from `data/applications.md`.
 - **RULE: After each batch of evaluations, run `node merge-tracker.mjs`** to merge tracker additions and avoid duplications.
 - **RULE: NEVER create new entries in applications.md if company+role already exists.** Update the existing entry.
 

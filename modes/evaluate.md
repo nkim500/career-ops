@@ -95,7 +95,7 @@ Also include:
 
 Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 
-- `{###}` = next sequential number (3 digits, zero-padded)
+- `{###}` = the next evaluation number. Get it by running `node scripts/local/next-num.mjs` — this is the single source of truth (derived from the `reports/` folder + `batch/batch-state.tsv`). NEVER derive the number from `data/applications.md`.
 - `{company-slug}` = company name in lowercase, no spaces (use hyphens)
 - `{YYYY-MM-DD}` = current date
 

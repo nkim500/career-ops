@@ -20,7 +20,7 @@ If the input is a **URL** (not pasted JD text), follow this strategy to extract 
 Run exactly as the `evaluate` mode (read `modes/evaluate.md` for all A-G blocks).
 
 ## Step 2 — Save Report .md
-Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md` (see format in `modes/evaluate.md`).
+Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md` (see format in `modes/evaluate.md`). Get `{###}` from `node scripts/local/next-num.mjs`.
 Include Block G in the saved report. Add `**Legitimacy:** {tier}` to the report header.
 
 ## Step 3 — Generate PDF
