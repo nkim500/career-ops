@@ -536,6 +536,7 @@ The A-G rubric is currently triplicated. Canonical sources after this task:
 - `batch/batch-prompt.md` / `batch/batch-prompt-eval-only.md` — thin wrappers: placeholders + "read the canonical files" + batch-specific steps (report path, TSV, JSON, PDF yes/no).
 
 **Files:**
+- Modify: `modes/evaluate.md` (correct the stale Block G / report-format section)
 - Modify: `batch/batch-prompt-eval-only.md` (replace duplicated rubric with references)
 - Modify: `batch/batch-prompt.md` (replace duplicated rubric with references)
 - Modify: `batch/post-worker.mjs` (TSV-synthesizer fallback — use the orchestrator-reserved report number instead of recomputing from `applications.md`)
@@ -705,7 +706,7 @@ Expected: no syntax error (silent, exit 0).
 - [ ] **Step 6: Commit**
 
 ```bash
-git add batch/batch-prompt.md batch/batch-prompt-eval-only.md batch/post-worker.mjs
+git add modes/evaluate.md batch/batch-prompt.md batch/batch-prompt-eval-only.md batch/post-worker.mjs
 git commit -m "$(cat <<'EOF'
 refactor(batch): thin batch prompts + fix post-worker numbering
 
