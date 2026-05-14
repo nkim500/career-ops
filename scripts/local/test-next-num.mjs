@@ -2,7 +2,7 @@
 
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { maxReportNum, maxStateNum, computeNextNum, findDuplicates } from './next-num.mjs';
 
 let passed = 0;
@@ -59,7 +59,7 @@ console.log('maxStateNum');
     '3\thttp://z\tpending\t-\t-\t-\t-\t-\t0',
   ]);
   assert('picks highest report_num, ignores "-"', maxStateNum(file), 1210);
-  rmSync(file.replace('/batch-state.tsv', ''), { recursive: true, force: true });
+  rmSync(dirname(file), { recursive: true, force: true });
 
   assert('missing state file → 0', maxStateNum('/nonexistent/state.tsv'), 0);
 }
@@ -70,13 +70,13 @@ console.log('computeNextNum');
   const file = makeStateFile(['1\thttp://x\tcompleted\t-\t-\t1205\t3.5\t-\t0']);
   assert('reports max wins → +1', computeNextNum({ reportsDir: dir, stateFile: file }), 1210);
   rmSync(dir, { recursive: true, force: true });
-  rmSync(file.replace('/batch-state.tsv', ''), { recursive: true, force: true });
+  rmSync(dirname(file), { recursive: true, force: true });
 
   const dir2 = makeReportsDir(['1209-bar.md']);
   const file2 = makeStateFile(['1\thttp://x\tprocessing\t-\t-\t1215\t-\t-\t0']);
   assert('state max wins → +1', computeNextNum({ reportsDir: dir2, stateFile: file2 }), 1216);
   rmSync(dir2, { recursive: true, force: true });
-  rmSync(file2.replace('/batch-state.tsv', ''), { recursive: true, force: true });
+  rmSync(dirname(file2), { recursive: true, force: true });
 }
 
 console.log('findDuplicates');

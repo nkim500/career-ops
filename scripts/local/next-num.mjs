@@ -14,7 +14,7 @@
 
 import { readdirSync, existsSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const CAREER_OPS = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -65,7 +65,7 @@ function pad(n) {
   return String(n).padStart(3, '0');
 }
 
-const isCLI = process.argv[1] && process.argv[1].endsWith('next-num.mjs');
+const isCLI = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isCLI) {
   const reportsDir = join(CAREER_OPS, 'reports');
   const stateFile = join(CAREER_OPS, 'batch', 'batch-state.tsv');
