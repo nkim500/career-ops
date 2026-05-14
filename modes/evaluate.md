@@ -93,7 +93,7 @@ Assess the posting per "Posting Legitimacy (Block G)" in `modes/_shared.md` and 
 
 ## Post-evaluation
 
-**ALWAYS** after generating blocks A-F:
+**ALWAYS** after generating blocks A-G:
 
 ### 1. Save report .md
 
@@ -110,9 +110,10 @@ Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 
 **Date:** {YYYY-MM-DD}
 **Archetype:** {detected}
-**Score:** {X/5}
+**Score:** {X.XX}/5
 **URL:** {job posting URL}
 **Posted:** {YYYY-MM-DD or "unknown"}
+**Legitimacy:** {High Confidence | Proceed with Caution | Suspicious}
 **PDF:** {path or pending}
 
 ---

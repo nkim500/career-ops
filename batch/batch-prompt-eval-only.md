@@ -39,13 +39,13 @@ You are a job evaluation worker. You receive a job URL (and optional JD text fil
 
 ---
 
-## Pipeline — execute ALL 4 steps in order
+## Pipeline — execute ALL 5 steps in order
 
 ### Step 1 — Get JD
 
 1. Read the JD file at `{{JD_FILE}}`.
 2. If empty/missing, WebFetch `{{URL}}`.
-3. If both fail, go to Step 4 with `status: failed` and stop.
+3. If both fail, go to Step 5 with `status: failed` and stop.
 
 ### Step 2 — Full A-G evaluation
 
