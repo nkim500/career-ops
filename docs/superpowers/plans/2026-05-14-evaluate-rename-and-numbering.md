@@ -463,7 +463,7 @@ Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md` (see 
 ```
 Replace with:
 ```
-Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md` (see format in `modes/evaluate.md`). Get `{###}` from `node scripts/local/next-num.mjs`.
+Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md` (see format in `modes/evaluate.md`). Get `{###}` from `node scripts/local/next-num.mjs` (single source of truth — reports/ + batch/batch-state.tsv). NEVER derive the number from `data/applications.md`.
 ```
 
 - [ ] **Step 3: Fix `modes/batch.md`**
