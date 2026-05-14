@@ -85,6 +85,10 @@ Also include:
 - 1 recommended case study (which of their projects to present and how)
 - Red-flag questions and how to answer them (e.g. "why did you leave?", "do you have direct reports?")
 
+## Block G — Posting Legitimacy
+
+Assess the posting per "Posting Legitimacy (Block G)" in `modes/_shared.md` and report the tier. This is a separate qualitative assessment — it does NOT affect the 1-5 global score.
+
 ---
 
 ## Post-evaluation
@@ -131,8 +135,8 @@ Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 ## F) Interview Plan
 (full content of Block F)
 
-## G) Draft Application Answers
-(only if score >= 4.5 — draft answers for the application form)
+## G) Posting Legitimacy
+(assess whether the posting is a real, active opening; assign a tier — High Confidence / Proceed with Caution / Suspicious. See "Posting Legitimacy (Block G)" in `modes/_shared.md`.)
 
 ---
 
