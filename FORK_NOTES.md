@@ -15,7 +15,7 @@ These three rules override upstream when they conflict. They are load-bearing fo
 All mode files, prompts, scripts, and user-facing strings in this fork are in English. Upstream uses Spanish (and other languages live in `modes/de/`, `modes/fr/`, `modes/ja/` as secondary dirs). In this fork:
 
 - Spanish mode files have been **renamed** to English equivalents:
-  - `modes/oferta.md` → `modes/offer.md`
+  - `modes/oferta.md` → `modes/evaluate.md` (was `modes/offer.md` until 2026-05-14; renamed for clarity — the mode evaluates a posting, it does not handle offers)
   - `modes/ofertas.md` → `modes/offers.md`
   - `modes/aplicar.md` → `modes/apply.md`
   - `modes/contacto.md` → `modes/contact.md`
@@ -49,6 +49,7 @@ Features and substantive local changes that live in this fork but not upstream. 
 
 | Date | Merge SHA | Feature | Notes |
 |------|-----------|---------|-------|
+| 2026-05-14 | `TBD` | Rename `offer` mode → `evaluate`; unified report numbering via `next-num.mjs`; batch prompts thinned to wrappers over canonical rubric | `modes/offer.md` → `modes/evaluate.md`. New `scripts/local/next-num.mjs` (single source of truth for report numbers: `reports/` + `batch-state.tsv`, never `applications.md`). `batch/batch-prompt*.md` reduced to thin wrappers reading `modes/_shared.md` + `modes/evaluate.md`. Dropped 4 fork-renamed files from `update-system.mjs` SYSTEM_PATHS. Spec: `docs/superpowers/specs/2026-05-14-evaluate-rename-and-numbering-design.md`. Plan: `docs/superpowers/plans/2026-05-14-evaluate-rename-and-numbering.md`. |
 | 2026-04-13 | `TBD` | Correspondence tracker: interview archive + debrief + task tracker | `data/follow-ups.md` extended to 11-column schema (Type/Due/Status). New `modes/debrief.md`. `modes/followup.md` gains add/list/done verbs. `followup-cadence.mjs` emits `standalone_tasks`. Spec: `docs/superpowers/specs/2026-04-13-correspondence-tracker-design.md`. |
 | 2026-04-13 | `213eeef` (PR #5) | Batch Sonnet workers + post-worker score fallback | `batch/batch-runner.sh` forces `--model sonnet`, adds `--prompt-file` flag, translates worker prompt to English. New `batch/post-worker.mjs` parses the report the worker wrote and synthesizes `batch/tracker-additions/{id}.tsv` when the worker skipped it. New `batch/batch-prompt-eval-only.md` prompt variant. |
 | 2026-04-13 | `6ff22b3` (PR #4) | Dashboard viewer text wrap | `dashboard/internal/ui/screens/viewer.go` wraps long lines instead of overflowing horizontally. |
