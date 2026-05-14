@@ -3,7 +3,7 @@ name: career-ops
 description: AI job search command center -- evaluate offers, generate CVs, scan portals, track applications
 arguments: mode # Claude Code specific
 user-invocable: true
-argument-hint: "[scan | deep | pdf | offer | offers | apply | batch | tracker | pipeline | contact | training | project | interview-prep | update]"
+argument-hint: "[scan | deep | pdf | evaluate | offers | apply | batch | tracker | pipeline | contact | training | project | interview-prep | update]"
 license: MIT
 ---
 
@@ -17,7 +17,7 @@ Determine the mode from `$mode`:
 |-------|------|
 | (empty / no args) | `discovery` -- Show command menu |
 | JD text or URL (no sub-command) | **`auto-pipeline`** |
-| `offer` | `offer` |
+| `evaluate` | `evaluate` |
 | `offers` | `offers` |
 | `contact` | `contact` |
 | `deep` | `deep` |
@@ -49,7 +49,7 @@ career-ops -- Command Center
 Available commands:
   /career-ops {JD}      → AUTO-PIPELINE: evaluate + report + PDF + tracker (paste text or URL)
   /career-ops pipeline  → Process pending URLs from inbox (data/pipeline.md)
-  /career-ops offer     → Evaluation only A-F (no auto PDF)
+  /career-ops evaluate  → Evaluation only A-G (no auto PDF)
   /career-ops offers    → Compare and rank multiple offers
   /career-ops contact   → LinkedIn power move: find contacts + draft message
   /career-ops deep      → Deep research prompt about company
@@ -77,7 +77,7 @@ After determining the mode, load the necessary files before executing:
 ### Modes that require `_shared.md` + their mode file:
 Read `modes/_shared.md` + `modes/{mode}.md`
 
-Applies to: `auto-pipeline`, `offer`, `offers`, `pdf`, `contact`, `apply`, `pipeline`, `scan`, `batch`
+Applies to: `auto-pipeline`, `evaluate`, `offers`, `pdf`, `contact`, `apply`, `pipeline`, `scan`, `batch`
 
 ### Standalone modes (only their mode file):
 Read `modes/{mode}.md`
