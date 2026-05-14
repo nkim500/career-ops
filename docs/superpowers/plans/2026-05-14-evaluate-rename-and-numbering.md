@@ -249,7 +249,7 @@ if (isCLI) {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `node scripts/local/test-next-num.mjs`
-Expected: PASS — `12 passed, 0 failed`, exit 0.
+Expected: PASS — `10 passed, 0 failed`, exit 0.
 
 - [ ] **Step 5: Smoke-test the CLI against the real repo**
 
@@ -797,7 +797,7 @@ Expected: PASS, or only the SAME pre-existing failures recorded in the spec (row
 - [ ] **Step 2: Run the next-num unit tests**
 
 Run: `node scripts/local/test-next-num.mjs`
-Expected: `12 passed, 0 failed`.
+Expected: `10 passed, 0 failed`.
 
 - [ ] **Step 3: Run pipeline verification**
 
