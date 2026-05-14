@@ -560,6 +560,9 @@ The A-G rubric is currently triplicated. Canonical sources after this task:
 
 This makes `modes/evaluate.md` the accurate canonical A-G walkthrough. The archetype table, scoring system, and Block G tier definitions stay canonical in `modes/_shared.md` (referenced, not duplicated).
 
+4. The Post-evaluation section heading `**ALWAYS** after generating blocks A-F:` → `**ALWAYS** after generating blocks A-G:` (stale — the file now runs A-G).
+5. In the Post-evaluation report-header template, add `**Legitimacy:** {tier}` immediately after the `**Score:**` line (Block G's output field; AGENTS.md mandates every report carry it), and change the score placeholder `{X/5}` → `{X.XX}/5` for consistency with the batch prompts and real reports. Leave the `**Posted:**` line as-is.
+
 - [ ] **Step 2: Rewrite `batch/batch-prompt-eval-only.md` as a thin wrapper**
 
 Replace the ENTIRE contents of `batch/batch-prompt-eval-only.md` with:
@@ -606,13 +609,13 @@ You are a job evaluation worker. You receive a job URL (and optional JD text fil
 
 ---
 
-## Pipeline — execute ALL 4 steps in order
+## Pipeline — execute ALL 5 steps in order
 
 ### Step 1 — Get JD
 
 1. Read the JD file at `{{JD_FILE}}`.
 2. If empty/missing, WebFetch `{{URL}}`.
-3. If both fail, go to Step 4 with `status: failed` and stop.
+3. If both fail, go to Step 5 with `status: failed` and stop.
 
 ### Step 2 — Full A-G evaluation
 
