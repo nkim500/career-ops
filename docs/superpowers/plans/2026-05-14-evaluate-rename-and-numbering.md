@@ -435,7 +435,10 @@ EOF
 - Modify: `modes/evaluate.md` (the "next sequential number" instruction)
 - Modify: `modes/auto-pipeline.md` (the `{###}` save instruction)
 - Modify: `modes/batch.md` (line ~46: "Calculate next sequential REPORT_NUM")
+- Modify: `modes/pipeline.md` (line ~9: "Calculate the next sequential `REPORT_NUM`...")
 - Modify: `AGENTS.md` (line ~289: "Report numbering: ...")
+
+Note: `modes/followup.md` also contains "next sequential" / "max existing" wording, but those refer to the **follow-ups table `#` column** (`data/follow-ups.md`), a different numbering domain — leave `modes/followup.md` alone.
 
 - [ ] **Step 1: Fix `modes/evaluate.md`**
 
@@ -485,26 +488,38 @@ Replace with:
 - Report numbering: get the next number from `node scripts/local/next-num.mjs` (single source of truth — max in `reports/` + `batch/batch-state.tsv`, +1). NEVER derive it from `data/applications.md`.
 ```
 
-- [ ] **Step 5: Verify**
+- [ ] **Step 5: Fix `modes/pipeline.md`**
+
+In `modes/pipeline.md`, find the per-URL step (line ~9):
+```
+   a. Calculate the next sequential `REPORT_NUM` (read `reports/`, take the highest number + 1)
+```
+Replace with:
+```
+   a. Get the next `REPORT_NUM`: run `node scripts/local/next-num.mjs` (single source of truth — reports/ + batch-state.tsv)
+```
+
+- [ ] **Step 6: Verify**
 
 Run: `grep -rn 'next sequential\|max existing' modes/ AGENTS.md`
-Expected: no output (all replaced).
+Expected: matches ONLY in `modes/followup.md` (the follow-ups-table `#` column — a different numbering domain, intentionally left alone). No matches in `evaluate.md`, `auto-pipeline.md`, `batch.md`, `pipeline.md`, or `AGENTS.md`.
 
 Run: `grep -rln 'next-num.mjs' modes/ AGENTS.md`
-Expected: `modes/evaluate.md`, `modes/auto-pipeline.md`, `modes/batch.md`, `AGENTS.md`.
+Expected: `modes/evaluate.md`, `modes/auto-pipeline.md`, `modes/batch.md`, `modes/pipeline.md`, `AGENTS.md`.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
+
+The first four files (`modes/evaluate.md`, `modes/auto-pipeline.md`, `modes/batch.md`, `AGENTS.md`) were committed as `6f4c65d`. Commit `modes/pipeline.md` as a follow-up:
 
 ```bash
-git add modes/evaluate.md modes/auto-pipeline.md modes/batch.md AGENTS.md
+git add modes/pipeline.md
 git commit -m "$(cat <<'EOF'
-fix(numbering): point interactive + conductor paths at next-num.mjs
+fix(numbering): point pipeline mode at next-num.mjs
 
-Replaces vague "next sequential number / max existing + 1" wording in
-evaluate.md, auto-pipeline.md, batch.md, and AGENTS.md with an explicit
-instruction to run scripts/local/next-num.mjs. Removes the ambiguity
-that let evaluations derive the number from data/applications.md and
-collide with existing reports.
+modes/pipeline.md had its own "read reports/, take highest + 1"
+REPORT_NUM instruction — correct source, but a second implementation
+of the logic. Now delegates to scripts/local/next-num.mjs like the
+other modes.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
