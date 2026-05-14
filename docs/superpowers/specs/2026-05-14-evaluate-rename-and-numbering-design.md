@@ -73,7 +73,7 @@ Three separate issues, all in the evaluation path:
 - `node test-all.mjs` (after updating its mode-filename references) — expect pass.
 - `node verify-pipeline.mjs` — pre-existing errors/warnings unrelated to this change are acceptable; no new ones.
 - `bash batch/batch-runner.sh --dry-run` — confirm the numbering path resolves through `next-num.mjs`.
-- `node scripts/local/next-num.mjs` — returns `1210` given the current `reports/` state.
+- `node scripts/local/next-num.mjs` — returns `1210` given the current `reports/` state (or higher if `batch/batch-state.tsv` holds a larger reserved `report_num`).
 - `grep -ril offer` sweep — confirm no lingering `offer` *identifier* references (vocabulary hits are expected and fine).
 
 ## Part F — Existing-state reconciliation (scoped: audit here, cleanup fast-follow)
