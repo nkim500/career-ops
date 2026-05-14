@@ -1,6 +1,6 @@
 # Mode: evaluate — Full A-G Evaluation
 
-When the candidate pastes a job offer (text or URL), ALWAYS deliver all 6 blocks:
+When the candidate pastes a job offer (text or URL), ALWAYS deliver all 7 blocks (A-G):
 
 ## Step 0 — Archetype Detection
 
