@@ -228,32 +228,10 @@ get_retries() {
 }
 
 # Calculate next report number.
-# Caller must hold STATE_LOCK_DIR while this runs.
+# Delegates to scripts/local/next-num.mjs — the single source of truth
+# (reports/ + batch-state.tsv). Caller must hold STATE_LOCK_DIR while this runs.
 next_report_num_unlocked() {
-  local max_num=0
-  if [[ -d "$REPORTS_DIR" ]]; then
-    for f in "$REPORTS_DIR"/*.md; do
-      [[ -f "$f" ]] || continue
-      local basename
-      basename=$(basename "$f")
-      local num="${basename%%-*}"
-      num=$((10#$num)) # Remove leading zeros for arithmetic
-      if (( num > max_num )); then
-        max_num=$num
-      fi
-    done
-  fi
-  # Also check state file for assigned report numbers
-  if [[ -f "$STATE_FILE" ]]; then
-    while IFS=$'\t' read -r _ _ _ _ _ rnum _ _ _; do
-      [[ "$rnum" == "report_num" || "$rnum" == "-" || -z "$rnum" ]] && continue
-      local n=$((10#$rnum))
-      if (( n > max_num )); then
-        max_num=$n
-      fi
-    done < "$STATE_FILE"
-  fi
-  printf '%03d' $((max_num + 1))
+  node "$PROJECT_DIR/scripts/local/next-num.mjs"
 }
 
 # Update or insert state for an offer.
