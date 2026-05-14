@@ -148,7 +148,7 @@ Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 ### 2. Register in tracker
 
 **ALWAYS** register in `data/applications.md`:
-- Next sequential number
+- Number: the SAME number as the report (the one from `node scripts/local/next-num.mjs` used in the Save report step) — the tracker `#` and the report number MUST match. NEVER derive it from `data/applications.md`.
 - Current date
 - Company
 - Role
