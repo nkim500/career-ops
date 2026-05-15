@@ -48,7 +48,7 @@ Options:
   --start-from N       Start from offer ID N (skip earlier IDs)
   --max-retries N      Max retry attempts per offer (default: 2)
   --prompt-file PATH   Worker system prompt file (default: batch/batch-prompt.md)
-  --min-score N        Skip PDF/tracker for offers scoring below N (default: 0 = off)
+  --min-score N        Skip tracker line for offers scoring below N (default: 0 = off)
   -h, --help           Show this help
 
 Files:
@@ -314,7 +314,7 @@ process_offer() {
 
   # Build the prompt with placeholders replaced
   local prompt
-  prompt="Process this job offer. Run the complete pipeline: A-F evaluation + report .md + PDF + tracker line."
+  prompt="Process this job offer. Run the complete pipeline: A-F evaluation + report .md + tracker line."
   prompt="$prompt URL: $url"
   prompt="$prompt JD file: $jd_file"
   prompt="$prompt Report number: $report_num"

@@ -11,10 +11,10 @@ Claude Conductor (claude --chrome --dangerously-skip-permissions)
   │  Reads DOM directly — user sees everything in real time
   │
   ├─ Offer 1: reads JD from DOM + URL
-  │    └─► claude -p worker → report .md + PDF + tracker-line
+  │    └─► claude -p worker → report .md + tracker-line
   │
   ├─ Offer 2: click next, reads JD + URL
-  │    └─► claude -p worker → report .md + PDF + tracker-line
+  │    └─► claude -p worker → report .md + tracker-line
   │
   └─ End: merge tracker-additions → applications.md + summary
 ```
@@ -88,9 +88,8 @@ Each worker receives `batch-prompt.md` as system prompt. It is self-contained.
 
 The worker produces:
 1. Report `.md` in `reports/`
-2. PDF in `output/`
-3. Tracker line in `batch/tracker-additions/{id}.tsv`
-4. Result JSON to stdout
+2. Tracker line in `batch/tracker-additions/{id}.tsv`
+3. Result JSON to stdout
 
 ## Error handling
 
@@ -101,4 +100,3 @@ The worker produces:
 | Portal changes layout | Conductor reasons about HTML, adapts |
 | Worker crashes | Conductor marks `failed`, moves to next. Retry with `--retry-failed` |
 | Conductor dies | Re-run → reads state → skips completed |
-| PDF fails | Report .md is saved. PDF remains pending |
