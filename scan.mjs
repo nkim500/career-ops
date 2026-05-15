@@ -152,6 +152,27 @@ function buildTitleFilter(titleFilter) {
   };
 }
 
+// ── Location filter ─────────────────────────────────────────────────
+
+function buildLocationFilter(locationFilter) {
+  const allow = (locationFilter?.allow || []).map(k => k.toLowerCase());
+  const deny = (locationFilter?.deny || []).map(k => k.toLowerCase());
+
+  return (location) => {
+    // Rule 1: blank/missing location → pass (don't drop on missing data)
+    if (typeof location !== 'string' || !location.trim()) return true;
+    const lower = location.toLowerCase();
+    // Rule 2: deny match → fail (deny wins over allow)
+    if (deny.some(k => lower.includes(k))) return false;
+    // Rule 3: allow match → pass
+    if (allow.some(k => lower.includes(k))) return true;
+    // Rule 4: allow non-empty but nothing matched → fail (strict allow-list)
+    if (allow.length > 0) return false;
+    // Rule 5: allow empty, no deny hit → pass (deny-only mode)
+    return true;
+  };
+}
+
 // ── Dedup ───────────────────────────────────────────────────────────
 
 function loadSeenUrls() {
@@ -282,6 +303,7 @@ async function main() {
   const config = parseYaml(readFileSync(PORTALS_PATH, 'utf-8'));
   const companies = config.tracked_companies || [];
   const titleFilter = buildTitleFilter(config.title_filter);
+  const locationFilter = buildLocationFilter(config.location_filter);
 
   // 2. Filter to enabled companies with detectable APIs
   const targets = companies
@@ -303,6 +325,7 @@ async function main() {
   const date = new Date().toISOString().slice(0, 10);
   let totalFound = 0;
   let totalFiltered = 0;
+  let totalLocationFiltered = 0;
   let totalDupes = 0;
   const newOffers = [];
   const errors = [];
@@ -317,6 +340,10 @@ async function main() {
       for (const job of jobs) {
         if (!titleFilter(job.title)) {
           totalFiltered++;
+          continue;
+        }
+        if (!locationFilter(job.location)) {
+          totalLocationFiltered++;
           continue;
         }
         if (seenUrls.has(job.url)) {
@@ -366,6 +393,7 @@ async function main() {
   console.log(`Companies scanned:     ${targets.length}`);
   console.log(`Total jobs found:      ${totalFound}`);
   console.log(`Filtered by title:     ${totalFiltered} removed`);
+  console.log(`Filtered by location:  ${totalLocationFiltered} removed`);
   console.log(`Duplicates:            ${totalDupes} skipped`);
   console.log(`New offers added:      ${newOffers.length}`);
 
