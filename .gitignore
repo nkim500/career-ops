@@ -60,3 +60,6 @@ package-lock.json
 
 # Superpowers planning artifacts (local scratch — never committed)
 docs/superpowers/
+
+# Fork divergence notes (kept local — fork-maintainer's personal record, not shipped)
+FORK_NOTES.md
