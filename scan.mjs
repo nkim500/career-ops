@@ -155,9 +155,9 @@ export function parseYC(html, _companyName) {
   const decoded = m[1]
     .replace(/&quot;/g, '"')
     .replace(/&#039;/g, "'")
-    .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>');
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
   let data;
   try { data = JSON.parse(decoded); } catch { return []; }
   const jobs = data?.props?.jobs || [];
