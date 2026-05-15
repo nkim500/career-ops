@@ -3,9 +3,10 @@
 /**
  * scan.mjs — Zero-token portal scanner
  *
- * Fetches Greenhouse, Ashby, and Lever APIs directly, applies title
- * filters from portals.yml, deduplicates against existing history,
- * and appends new offers to pipeline.md + scan-history.tsv.
+ * Fetches Greenhouse, Ashby, Lever, YC Work at a Startup, and Workday
+ * APIs directly, applies title and location filters from portals.yml,
+ * deduplicates against existing history, and appends new offers to
+ * pipeline.md + scan-history.tsv.
  *
  * Zero Claude API tokens — pure HTTP + JSON.
  *
@@ -34,7 +35,7 @@ const FETCH_TIMEOUT_MS = 10_000;
 
 // ── API detection ───────────────────────────────────────────────────
 
-function detectApi(company) {
+export function detectApi(company) {
   // Greenhouse: explicit api field
   if (company.api && company.api.includes('greenhouse')) {
     return { type: 'greenhouse', url: company.api };
@@ -66,6 +67,25 @@ function detectApi(company) {
     return {
       type: 'greenhouse',
       url: `https://boards-api.greenhouse.io/v1/boards/${ghEuMatch[1]}/jobs`,
+    };
+  }
+
+  // YC Work at a Startup — HTML-embedded Inertia.js payload
+  if (/workatastartup\.com\/jobs(?:\/l\/[^?#]+)?/.test(url)) {
+    return { type: 'yc', url };
+  }
+
+  // Workday — POST /wday/cxs/{tenant}/{site}/jobs, paginated
+  // URL pattern: https://{tenant}.wd{N}.myworkdayjobs.com/[en-US/]{site}[/...]
+  const wdMatch = url.match(/https?:\/\/([^.]+)\.(wd\d+)\.myworkdayjobs\.com\/(?:en-US\/)?([^/?#]+)/);
+  if (wdMatch) {
+    const [, tenant, shard, site] = wdMatch;
+    return {
+      type: 'workday',
+      url: `https://${tenant}.${shard}.myworkdayjobs.com/wday/cxs/${tenant}/${site}/jobs`,
+      tenant,
+      shard,
+      site,
     };
   }
 
@@ -107,7 +127,101 @@ function parseLever(json, companyName) {
   }));
 }
 
-const PARSERS = { greenhouse: parseGreenhouse, ashby: parseAshby, lever: parseLever };
+// YC Work at a Startup parser
+//
+// Pages under workatastartup.com/jobs/l/{role} are Inertia.js server-rendered HTML.
+// The props payload lives in a `data-page="..."` attribute with HTML-entity-encoded JSON.
+// We extract, decode, parse, and map the jobs array. Each job carries its own real
+// companyName so a single YC pseudo-entry can cover many YC hiring companies.
+
+export function parseYCLastActive(relativeStr, now = new Date()) {
+  if (!relativeStr) return '';
+  const m = relativeStr.match(/(\d+)\s+(day|week|month|year)s?\s+ago/i);
+  if (!m) return '';
+  const n = parseInt(m[1], 10);
+  const unit = m[2].toLowerCase();
+  const days = unit === 'day' ? n
+    : unit === 'week' ? n * 7
+    : unit === 'month' ? n * 30
+    : n * 365;
+  const d = new Date(now);
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+export function parseYC(html, _companyName) {
+  const m = html.match(/data-page="([^"]+)"/);
+  if (!m) return [];
+  const decoded = m[1]
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+  let data;
+  try { data = JSON.parse(decoded); } catch { return []; }
+  const jobs = data?.props?.jobs || [];
+  if (!Array.isArray(jobs)) return [];
+  return jobs.map(j => ({
+    title: j.title || '',
+    url: j.id ? `https://www.workatastartup.com/jobs/${j.id}` : (j.applyUrl || ''),
+    company: j.companyName || '',
+    location: j.location || '',
+    datePosted: parseYCLastActive(j.companyLastActiveAt),
+  }));
+}
+
+// Workday parser
+//
+// Workday's POST /wday/cxs/{tenant}/{site}/jobs returns:
+//   { total, jobPostings: [{ title, externalPath, locationsText, postedOn, ... }], ... }
+// Pagination is offset-based and lives in fetchWorkdayJobs below; parseWorkday only maps
+// already-fetched jobs.
+//
+// postedOn is a relative string ("Posted Today", "Posted N Days Ago", "Posted 30+ Days Ago")
+// that we translate into absolute ISO dates so the existing freshness-sort / age-label path
+// still works.
+//
+// Some Workday tenants (e.g. Capital One) return HTTP 422 regardless of payload — tenant-
+// level anti-bot. Those fetches fail and the main loop's error handler skips them without
+// aborting the scan.
+
+export function parseWorkdayPostedOn(relative, now = new Date()) {
+  if (!relative) return '';
+  const r = relative.toLowerCase();
+  if (r.includes('today')) return new Date(now).toISOString().slice(0, 10);
+  if (r.includes('yesterday')) {
+    const d = new Date(now); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10);
+  }
+  const m = r.match(/(\d+)\+?\s*days?\s*ago/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    const d = new Date(now); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10);
+  }
+  return '';
+}
+
+export function parseWorkday(rawJobs, companyName, apiCtx) {
+  if (!Array.isArray(rawJobs)) return [];
+  const { tenant, shard, site } = apiCtx || {};
+  return rawJobs.map(j => ({
+    title: j.title || '',
+    url: tenant && shard && site
+      ? `https://${tenant}.${shard}.myworkdayjobs.com/en-US/${site}${j.externalPath || ''}`
+      : '',
+    company: companyName,
+    location: j.locationsText || '',
+    datePosted: parseWorkdayPostedOn(j.postedOn),
+  }));
+}
+
+export const PARSERS = {
+  greenhouse: parseGreenhouse,
+  ashby: parseAshby,
+  lever: parseLever,
+  yc: parseYC,
+  workday: parseWorkday,
+};
 
 // ── Age formatter ────────────────────────────────────────────────────
 
@@ -126,7 +240,7 @@ function formatAge(datePosted, referenceDate) {
 
 // ── Fetch with timeout ──────────────────────────────────────────────
 
-async function fetchJson(url) {
+export async function fetchJson(url) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
@@ -138,9 +252,73 @@ async function fetchJson(url) {
   }
 }
 
+// fetchText for HTML/text sources (e.g. YC Work at a Startup)
+export async function fetchText(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'career-ops-scanner/1.0' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// fetchJsonPost for Workday-style POST endpoints
+export async function fetchJsonPost(url, body) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'career-ops-scanner/1.0',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Workday pagination loop. Iterates jobPostings across offset pages.
+// Only trusts `total` from the FIRST response that reports total > 0 — some tenants
+// (NVIDIA) echo `total: 0` on subsequent pages, which would prematurely break a naive
+// loop that re-reads `total` each iteration. Falls back on empty jobPostings as the
+// terminal condition. Safety cap of 2000 jobs per tenant.
+export async function fetchWorkdayJobs(apiUrl) {
+  const all = [];
+  let offset = 0;
+  const limit = 20;
+  const CAP = 2000;
+  let knownTotal = null;
+  while (offset < CAP) {
+    const res = await fetchJsonPost(apiUrl, { appliedFacets: {}, limit, offset, searchText: '' });
+    const jp = res?.jobPostings || [];
+    if (jp.length === 0) break;
+    all.push(...jp);
+    if (knownTotal === null) {
+      const t = Number(res?.total);
+      if (t > 0) knownTotal = t;
+    }
+    if (knownTotal !== null && offset + limit >= knownTotal) break;
+    offset += limit;
+  }
+  return all;
+}
+
 // ── Title filter ────────────────────────────────────────────────────
 
-function buildTitleFilter(titleFilter) {
+export function buildTitleFilter(titleFilter) {
   const positive = (titleFilter?.positive || []).map(k => k.toLowerCase());
   const negative = (titleFilter?.negative || []).map(k => k.toLowerCase());
 
@@ -154,7 +332,7 @@ function buildTitleFilter(titleFilter) {
 
 // ── Location filter ─────────────────────────────────────────────────
 
-function buildLocationFilter(locationFilter) {
+export function buildLocationFilter(locationFilter) {
   const allow = (locationFilter?.allow || []).map(k => k.toLowerCase());
   const deny = (locationFilter?.deny || []).map(k => k.toLowerCase());
 
@@ -229,19 +407,20 @@ function appendToPipeline(offers) {
 
   let text = readFileSync(PIPELINE_PATH, 'utf-8');
 
-  // Find "## Pendientes" section and append after it
-  const marker = '## Pendientes';
+  // Find "## Pending" section and append after it.
+  // Fork divergence: upstream uses Spanish "## Pendientes" / "## Procesadas".
+  const marker = '## Pending';
   const idx = text.indexOf(marker);
   if (idx === -1) {
-    // No Pendientes section — append at end before Procesadas
-    const procIdx = text.indexOf('## Procesadas');
+    // No Pending section — append at end before Processed
+    const procIdx = text.indexOf('## Processed');
     const insertAt = procIdx === -1 ? text.length : procIdx;
     const block = `\n${marker}\n\n` + offers.map(o =>
       `- [ ] ${o.url} | ${o.company} | ${o.title}${o.ageLabel ? ' | ' + o.ageLabel : ''}`
     ).join('\n') + '\n\n';
     text = text.slice(0, insertAt) + block + text.slice(insertAt);
   } else {
-    // Find the end of existing Pendientes content (next ## or end)
+    // Find the end of existing Pending content (next ## or end)
     const afterMarker = idx + marker.length;
     const nextSection = text.indexOf('\n## ', afterMarker);
     const insertAt = nextSection === -1 ? text.length : nextSection;
@@ -333,8 +512,21 @@ async function main() {
   const tasks = targets.map(company => async () => {
     const { type, url } = company._api;
     try {
-      const json = await fetchJson(url);
-      const jobs = PARSERS[type](json, company.name);
+      // Dispatch by source type.
+      //   yc       → fetchText (HTML-embedded Inertia.js payload)
+      //   workday  → fetchWorkdayJobs (POST + pagination) → parseWorkday(apiCtx)
+      //   others   → fetchJson
+      let jobs;
+      if (type === 'yc') {
+        const html = await fetchText(url);
+        jobs = PARSERS.yc(html, company.name);
+      } else if (type === 'workday') {
+        const rawJobs = await fetchWorkdayJobs(url);
+        jobs = PARSERS.workday(rawJobs, company.name, company._api);
+      } else {
+        const json = await fetchJson(url);
+        jobs = PARSERS[type](json, company.name);
+      }
       totalFound += jobs.length;
 
       for (const job of jobs) {
@@ -421,7 +613,13 @@ async function main() {
   console.log('→ Share results and get help: https://discord.gg/8pRpHETxa4');
 }
 
-main().catch(err => {
-  console.error('Fatal:', err.message);
-  process.exit(1);
-});
+// Guard so other files (tests, retro-filter utilities) can import functions from
+// scan.mjs without triggering a full scan as a side-effect.
+const isDirectInvocation = process.argv[1] && process.argv[1].endsWith('scan.mjs');
+
+if (isDirectInvocation) {
+  main().catch(err => {
+    console.error('Fatal:', err.message);
+    process.exit(1);
+  });
+}
