@@ -57,3 +57,6 @@ package-lock.json
 .claude/*
 !.claude/skills
 *.bak
+
+# Superpowers planning artifacts (local scratch — never committed)
+docs/superpowers/
