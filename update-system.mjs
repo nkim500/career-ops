@@ -31,15 +31,15 @@ const RELEASES_API = 'https://api.github.com/repos/santifer/career-ops/releases/
 const SYSTEM_PATHS = [
   'modes/_shared.md',
   'modes/_profile.template.md',
-  'modes/oferta.md',
+  // NOTE: fork-renamed mode files (upstream oferta/ofertas/contacto/aplicar →
+  // fork evaluate/offers/contact/apply) are intentionally NOT listed here.
+  // Per FORK_NOTES.md Invariant 1, upstream edits to those files are ported
+  // manually during sync, not by this auto-updater.
   'modes/pdf.md',
   'modes/scan.md',
   'modes/batch.md',
-  'modes/apply.md',
   'modes/auto-pipeline.md',
-  'modes/contacto.md',
   'modes/deep.md',
-  'modes/ofertas.md',
   'modes/pipeline.md',
   'modes/project.md',
   'modes/tracker.md',

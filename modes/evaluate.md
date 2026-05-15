@@ -1,6 +1,6 @@
-# Mode: offer — Full A-F Evaluation
+# Mode: evaluate — Full A-G Evaluation
 
-When the candidate pastes a job offer (text or URL), ALWAYS deliver all 6 blocks:
+When the candidate pastes a job offer (text or URL), ALWAYS deliver all 7 blocks (A-G):
 
 ## Step 0 — Archetype Detection
 
@@ -85,17 +85,21 @@ Also include:
 - 1 recommended case study (which of their projects to present and how)
 - Red-flag questions and how to answer them (e.g. "why did you leave?", "do you have direct reports?")
 
+## Block G — Posting Legitimacy
+
+Assess the posting per "Posting Legitimacy (Block G)" in `modes/_shared.md` and report the tier. This is a separate qualitative assessment — it does NOT affect the 1-5 global score.
+
 ---
 
 ## Post-evaluation
 
-**ALWAYS** after generating blocks A-F:
+**ALWAYS** after generating blocks A-G:
 
 ### 1. Save report .md
 
 Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 
-- `{###}` = next sequential number (3 digits, zero-padded)
+- `{###}` = the next evaluation number. Get it by running `node scripts/local/next-num.mjs` — this is the single source of truth (derived from the `reports/` folder + `batch/batch-state.tsv`). NEVER derive the number from `data/applications.md`.
 - `{company-slug}` = company name in lowercase, no spaces (use hyphens)
 - `{YYYY-MM-DD}` = current date
 
@@ -106,9 +110,10 @@ Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 
 **Date:** {YYYY-MM-DD}
 **Archetype:** {detected}
-**Score:** {X/5}
+**Score:** {X.XX}/5
 **URL:** {job posting URL}
 **Posted:** {YYYY-MM-DD or "unknown"}
+**Legitimacy:** {High Confidence | Proceed with Caution | Suspicious}
 **PDF:** {path or pending}
 
 ---
@@ -131,8 +136,8 @@ Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 ## F) Interview Plan
 (full content of Block F)
 
-## G) Draft Application Answers
-(only if score >= 4.5 — draft answers for the application form)
+## G) Posting Legitimacy
+(assess whether the posting is a real, active opening; assign a tier — High Confidence / Proceed with Caution / Suspicious. See "Posting Legitimacy (Block G)" in `modes/_shared.md`.)
 
 ---
 
@@ -143,7 +148,7 @@ Save the full evaluation to `reports/{###}-{company-slug}-{YYYY-MM-DD}.md`.
 ### 2. Register in tracker
 
 **ALWAYS** register in `data/applications.md`:
-- Next sequential number
+- Number: the SAME number as the report (the one from `node scripts/local/next-num.mjs` used in the Save report step) — the tracker `#` and the report number MUST match. NEVER derive it from `data/applications.md`.
 - Current date
 - Company
 - Role

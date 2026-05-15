@@ -4,7 +4,7 @@
 // Sonnet worker on a long prompt) skipped Step 4/5 of the prompt.
 //
 // Usage: node batch/post-worker.mjs <id> <report_num> <date> <url>
-// Reads: reports/{report_num}-*-{date}.md  and  data/applications.md
+// Reads: reports/{report_num}-*-{date}.md
 // Writes: batch/tracker-additions/{id}.tsv  (only if it doesn't already exist)
 // Stdout: a single line with the extracted score (e.g. "4.25") or "-" if unknown.
 
@@ -20,7 +20,6 @@ if (!id || !reportNum || !date) {
 const PROJECT_DIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const reportsDir = path.join(PROJECT_DIR, "reports");
 const trackerPath = path.join(PROJECT_DIR, "batch", "tracker-additions", `${id}.tsv`);
-const applicationsPath = path.join(PROJECT_DIR, "data", "applications.md");
 
 // Find the report file matching {reportNum}-*-{date}.md
 const reportFile = fs.readdirSync(reportsDir).find(f =>
@@ -55,29 +54,8 @@ if (score) {
 // If tracker TSV already exists, don't overwrite it — the worker did its job.
 if (fs.existsSync(trackerPath)) process.exit(0);
 
-// Compute next_num by reading applications.md and finding the max existing #.
-let nextNum = 1;
-try {
-  const apps = fs.readFileSync(applicationsPath, "utf8");
-  const nums = [...apps.matchAll(/^\|\s*(\d+)\s*\|/gm)].map(m => parseInt(m[1], 10));
-  // Also look at any already-pending tracker-additions so parallel workers
-  // don't collide on the same next_num.
-  const pendingDir = path.join(PROJECT_DIR, "batch", "tracker-additions");
-  if (fs.existsSync(pendingDir)) {
-    for (const f of fs.readdirSync(pendingDir)) {
-      if (!f.endsWith(".tsv")) continue;
-      try {
-        const line = fs.readFileSync(path.join(pendingDir, f), "utf8").split("\n")[0];
-        const firstCol = line.split("\t")[0];
-        const n = parseInt(firstCol, 10);
-        if (Number.isFinite(n)) nums.push(n);
-      } catch {}
-    }
-  }
-  if (nums.length) nextNum = Math.max(...nums) + 1;
-} catch {
-  // applications.md may not exist yet — start at 1.
-}
+// The orchestrator already reserved this number — reuse it, never recompute.
+const nextNum = reportNum;
 
 const scoreStr = score ? `${score}/5` : "N/A";
 const reportLink = `[${reportNum}](reports/${reportFile})`;

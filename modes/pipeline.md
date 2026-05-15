@@ -6,7 +6,7 @@ Processes offer URLs accumulated in `data/pipeline.md`. The user adds URLs whene
 
 1. **Read** `data/pipeline.md` → find `- [ ]` items in the "Pending" section
 2. **For each pending URL**:
-   a. Calculate the next sequential `REPORT_NUM` (read `reports/`, take the highest number + 1)
+   a. Get the next `REPORT_NUM`: run `node scripts/local/next-num.mjs` (single source of truth — reports/ + batch-state.tsv)
    b. **Extract JD** using Playwright (browser_navigate + browser_snapshot) → WebFetch → WebSearch
    c. If the URL is not accessible → mark as `- [!]` with a note and continue
    d. **Save raw JD** to `jds/{company}-{role-slug}.md` (create `jds/` if it doesn't exist). Use the same slug format as reports: lowercase, hyphens, no special chars. Skip if the URL already has a `local:` prefix (JD already saved). If the JD was pasted as text rather than fetched from a URL, still save it.

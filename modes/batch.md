@@ -41,7 +41,7 @@ batch/
 4. **For each pending URL**:
    a. Chrome: click the offer → read JD text from DOM
    b. Save JD to `/tmp/batch-jd-{id}.txt`
-   c. Calculate next sequential REPORT_NUM
+   c. Get next REPORT_NUM: run `node scripts/local/next-num.mjs` (single source of truth — reports/ + batch-state.tsv)
    d. Execute via Bash:
       ```bash
       claude -p --dangerously-skip-permissions \
